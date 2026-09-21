@@ -12,7 +12,7 @@ pnpm dev
 
 This project expects pnpm to use the global user store, not a repository-local `.pnpm-store`. On macOS, configure it once with `pnpm config set store-dir "$HOME/Library/pnpm/store" --global`, then verify with `pnpm store path`.
 
-Open [http://localhost:3000](http://localhost:3000). To work without an OpenRouter key, set `MOCK_JEV=true` in `.env.local`. With a key, the server calls OpenRouter’s OpenAI-compatible chat endpoint with a strict JSON schema and defaults to `typesafe/jev-1.13`.
+Open [http://localhost:3000](http://localhost:3000). To work without an OpenRouter key, set `MOCK_JEV=true` in `.env.local`. With a key, the server calls OpenRouter’s dedicated Decisions endpoint and defaults to `typesafe/jev-1.13`.
 
 Useful checks:
 

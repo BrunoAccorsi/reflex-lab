@@ -1,5 +1,6 @@
 import { getScenario, type Scenario } from "@/lib/scenarios";
 import { normalizeProviderDecision, type EvaluationInput, type ProviderDecision } from "@/lib/evaluation";
+import { z } from "zod";
 
 export type JevProviderResult = {
   decision: ProviderDecision;
@@ -18,48 +19,95 @@ export class JevProviderError extends Error {
   }
 }
 
-const responseSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    choice: { type: "string", description: "The selected option from the choice question." },
-    score: { type: "number", description: "The normalized score from 0 to 1." },
-    decision: { type: "boolean", description: "The boolean answer to the scenario question." },
-    confidence: { type: "number", description: "Calibrated confidence from 0 to 1." },
-    probabilities: {
-      type: "object",
-      description: "Probability for every available choice, summing to 1.",
-      additionalProperties: { type: "number" },
-    },
-  },
-  required: ["choice", "score", "decision", "confidence", "probabilities"],
-} as const;
+const scoreCriteria = ["Very low", "Low", "Moderate", "High", "Very high"] as const;
 
-function buildPrompt(input: EvaluationInput, scenario: Scenario) {
-  const questions = scenario.questions
-    .map((question) => `${question.id}: ${question.label}${question.options ? ` Options: ${question.options.join(", ")}` : ""}`)
-    .join("\n");
-  const fields = Object.entries(input.fields).map(([key, value]) => `${key}: ${value}`).join("\n");
-  return `Evaluate this automation scenario. Return only the requested structured decision.\n\nScenario: ${scenario.title}\nQuestions:\n${questions}\n\nInput:\n${fields}\n\nRules: choose exactly one allowed option; score and confidence must be between 0 and 1; probabilities must include every choice option and sum to 1; decision answers the boolean question.`;
+const decisionsResponseSchema = z.object({
+  model: z.string().optional(),
+  answers: z.record(z.unknown()),
+  usage: z.object({
+    input_tokens: z.number().optional(),
+    output_tokens: z.number().optional(),
+  }).passthrough().optional(),
+}).passthrough();
+
+const choiceAnswerSchema = z.object({
+  type: z.literal("choice").optional(),
+  choice: z.string(),
+  probabilities: z.record(z.number().finite().min(0)),
+  confidence: z.number().finite().min(0).max(1).optional(),
+}).passthrough();
+
+const scoreAnswerSchema = z.object({
+  type: z.literal("score").optional(),
+  score: z.number().finite(),
+}).passthrough();
+
+const noulAnswerSchema = z.object({
+  type: z.literal("noul").optional(),
+  noul: z.number().finite().min(0).max(1),
+}).passthrough();
+
+function buildDecisionQuestions(scenario: Scenario) {
+  return Object.fromEntries(scenario.questions.map((question) => {
+    if (question.kind === "choice") {
+      const criteria = Object.fromEntries((question.options ?? []).map((option) => [
+        option,
+        `Choose ${option.replaceAll("-", " ")} when it is the best answer to: ${question.label}`,
+      ]));
+      return [question.id, { type: "choice", instructions: question.label, criteria }];
+    }
+    if (question.kind === "score") {
+      return [question.id, {
+        type: "score",
+        instructions: `${question.label} Select the closest ordered level.`,
+        criteria: scoreCriteria.map((level) => `${level}: ${question.label}`),
+      }];
+    }
+    return [question.id, {
+      type: "noul",
+      instructions: question.label,
+      criteria: {
+        true: `The evidence supports yes for: ${question.label}`,
+        false: `The evidence supports no for: ${question.label}`,
+      },
+    }];
+  }));
 }
 
-function extractContent(payload: unknown): unknown {
-  if (payload && typeof payload === "object" && "choice" in payload) return payload;
-  if (!payload || typeof payload !== "object") return null;
-  const record = payload as Record<string, unknown>;
-  const choices = record.choices;
-  if (!Array.isArray(choices) || !choices[0] || typeof choices[0] !== "object") return null;
-  const message = (choices[0] as Record<string, unknown>).message;
-  if (!message || typeof message !== "object") return null;
-  const content = (message as Record<string, unknown>).content;
-  if (typeof content === "string") {
-    try {
-      return JSON.parse(content);
-    } catch {
-      return null;
-    }
+function normalizeDecisionsResponse(payload: unknown, scenario: Scenario, fallbackModel: string): JevProviderResult {
+  const response = decisionsResponseSchema.parse(payload);
+  const choiceQuestion = scenario.questions.find((question) => question.kind === "choice");
+  const scoreQuestion = scenario.questions.find((question) => question.kind === "score");
+  const booleanQuestion = scenario.questions.find((question) => question.kind === "boolean");
+  if (!choiceQuestion || !scoreQuestion || !booleanQuestion) {
+    throw new Error(`Scenario ${scenario.id} is missing a required decision question`);
   }
-  return content;
+
+  const choiceAnswer = choiceAnswerSchema.parse(response.answers[choiceQuestion.id]);
+  const scoreAnswer = scoreAnswerSchema.parse(response.answers[scoreQuestion.id]);
+  const booleanAnswer = noulAnswerSchema.parse(response.answers[booleanQuestion.id]);
+  const highestProbability = Math.max(...Object.values(choiceAnswer.probabilities));
+  const normalizedScore = Math.min(1, Math.max(0, scoreAnswer.score / (scoreCriteria.length - 1)));
+  const decision = normalizeProviderDecision({
+    choice: choiceAnswer.choice,
+    score: normalizedScore,
+    decision: booleanAnswer.noul >= 0.5,
+    confidence: choiceAnswer.confidence ?? highestProbability,
+    probabilities: choiceAnswer.probabilities,
+  }, scenario);
+  const tokenUsage = response.usage
+    ? (response.usage.input_tokens ?? 0) + (response.usage.output_tokens ?? 0)
+    : null;
+  return { decision, tokenUsage, model: response.model ?? fallbackModel };
+}
+
+function extractProviderErrorMessage(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const error = (payload as Record<string, unknown>).error;
+  if (typeof error === "string") return error.slice(0, 500);
+  if (!error || typeof error !== "object") return null;
+  const message = (error as Record<string, unknown>).message;
+  return typeof message === "string" ? message.slice(0, 500) : null;
 }
 
 export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promise<(input: EvaluationInput) => Promise<JevProviderResult>> {
@@ -73,7 +121,7 @@ export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promis
     const scenario = getScenario(input.scenarioId);
     let response: Response;
     try {
-      response = await fetchImpl("https://openrouter.ai/api/v1/chat/completions", {
+      response = await fetchImpl("https://openrouter.ai/api/alpha/decisions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -83,15 +131,12 @@ export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promis
         },
         body: JSON.stringify({
           model,
-          temperature: 0,
-          messages: [
-            { role: "system", content: "You are a structured decision engine. Never return prose." },
-            { role: "user", content: buildPrompt(input, scenario) },
-          ],
-          response_format: {
-            type: "json_schema",
-            json_schema: { name: "reflex_decision", strict: true, schema: responseSchema },
+          state: {
+            scenario: scenario.title,
+            description: scenario.description,
+            ...input.fields,
           },
+          questions: buildDecisionQuestions(scenario),
         }),
       });
     } catch {
@@ -100,21 +145,23 @@ export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promis
 
     const raw = await response.json().catch(() => null);
     if (!response.ok) {
+      const providerMessage = extractProviderErrorMessage(raw);
+      console.error("[Reflex Lab] OpenRouter request failed", {
+        status: response.status,
+        requestId: response.headers.get("x-request-id"),
+        body: raw,
+      });
       if (response.status === 401 || response.status === 403) {
-        throw new JevProviderError("OpenRouter rejected the API key.", "provider_error", response.status);
+        throw new JevProviderError(providerMessage ? `OpenRouter rejected the API key: ${providerMessage}` : "OpenRouter rejected the API key.", "provider_error", response.status);
       }
       if (response.status === 429) {
-        throw new JevProviderError("OpenRouter rate limit reached. Try again shortly.", "rate_limited", response.status);
+        throw new JevProviderError(providerMessage ? `OpenRouter rate limit reached: ${providerMessage}` : "OpenRouter rate limit reached. Try again shortly.", "rate_limited", response.status);
       }
-      throw new JevProviderError("OpenRouter returned an error.", "provider_error", response.status);
+      throw new JevProviderError(providerMessage ? `OpenRouter returned an error (${response.status}): ${providerMessage}` : `OpenRouter returned an error (${response.status}).`, "provider_error", response.status);
     }
 
-    const parsed = extractContent(raw);
-    if (!parsed) throw new JevProviderError("OpenRouter returned a malformed decision.", "malformed_response");
     try {
-      const decision = normalizeProviderDecision(parsed, scenario);
-      const usage = raw && typeof raw === "object" && "usage" in raw ? (raw as { usage?: { total_tokens?: number } }).usage?.total_tokens : null;
-      return { decision, tokenUsage: usage ?? null, model };
+      return normalizeDecisionsResponse(raw, scenario, model);
     } catch (error) {
       throw new JevProviderError(error instanceof Error ? error.message : "Malformed decision.", "malformed_response");
     }
