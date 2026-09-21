@@ -1,6 +1,6 @@
 # Reflex Lab
 
-Reflex Lab is a stateless Next.js workbench for five Jev-powered automation experiments. It uses one typed scenario registry and one evaluation pipeline for choice, score, boolean, confidence gating, and simulated actions.
+Reflex Lab is a local-first Next.js workbench for building transparent decision systems with Jev. Six guided capability labs demonstrate Choice, Score, Noul, repeated record evaluation, ranking, and deterministic policy composition. The `/studio` workspace adds visual and JSON authoring for custom browser-local presets.
 
 ## Local development
 
@@ -23,7 +23,14 @@ pnpm test:e2e
 pnpm build
 ```
 
-The confidence threshold is intentionally held in client state. Moving it after an evaluation recalculates the automation gate without making another provider request.
+Run the optional credential-gated live Decisions API check with `pnpm test:live`. It is excluded from the default suite.
+
+Policy weights and thresholds are intentionally held in client state. Editing them after an evaluation recomputes the outcome and trace without making another provider request. Custom definitions are stored in versioned `localStorage`; only the previous compatible result is kept in `sessionStorage`. Live input state is not persisted.
+
+## Workspaces
+
+- `/` contains the six guided capability labs and the Outcome, Answers, Composition, Compare, and API result views.
+- `/studio` provides synchronized visual and JSON definition editing, schema errors, templates, and preset save, duplicate, reset, import, and export controls.
 
 ## Deployment preparation
 

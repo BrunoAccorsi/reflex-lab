@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
-import { applyConfidenceGate, evaluationInputSchema, validateFields } from "@/lib/evaluation";
+import { evaluationInputSchema } from "@/lib/evaluation";
+import { validateExperimentState } from "@/lib/experiments";
 import { evaluateWithJev, JevProviderError } from "@/server/jev";
 import { publicProcedure, createTRPCRouter } from "@/server/trpc";
 
@@ -7,15 +8,21 @@ export const evaluationRouter = createTRPCRouter({
   evaluate: publicProcedure.input(evaluationInputSchema).mutation(async ({ input }) => {
     const startedAt = performance.now();
     try {
-      validateFields(input);
+      validateExperimentState(input.definition, input.state);
       const result = await evaluateWithJev(input);
       return {
-        scenarioId: input.scenarioId,
-        ...result.decision,
-        latencyMs: Math.round(performance.now() - startedAt),
-        tokenUsage: result.tokenUsage,
-        model: result.model,
-        ...applyConfidenceGate(result.decision, 0.8),
+        experimentId: input.definition.id,
+        answers: result.answers,
+        telemetry: {
+          provider: result.provider,
+          model: result.model,
+          requestId: result.requestId,
+          latencyMs: Math.round(performance.now() - startedAt),
+          usage: result.usage,
+          cost: result.cost,
+        },
+        request: result.request,
+        rawResponse: result.rawResponse,
       };
     } catch (error) {
       if (error instanceof JevProviderError) {

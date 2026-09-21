@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Activity, ArrowRight, Check, Gauge, Layers3, LoaderCircle, ShieldAlert, Sparkles } from "lucide-react";
-import { applyConfidenceGate } from "@/lib/evaluation";
-import { scenarios, type ScenarioId } from "@/lib/scenarios";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ArrowRight, Check, ChevronRight, Gauge, Layers3, LoaderCircle, Plus, ShieldAlert, Sparkles, Trash2, Wrench } from "lucide-react";
+import { calculateRanking, compareResults, evaluatePolicy, type ExperimentResult, type TypedAnswer } from "@/lib/evaluation";
+import { experiments, type ExperimentDefinitionV1, type ExperimentState, type StateField } from "@/lib/experiments";
+import { loadPresets, loadPreviousResult, savePreviousResult } from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { trpc } from "@/components/trpc-provider";
 import { Alert } from "@/components/ui/alert";
@@ -11,66 +13,105 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
-type LocalResult = Awaited<ReturnType<typeof trpc.evaluation.evaluate.useMutation>>["data"];
-
 const accentStyles = {
-  coral: "bg-coral/15 text-[#a54834]",
-  sky: "bg-sky/20 text-[#356b7d]",
-  lavender: "bg-lavender/25 text-[#63547d]",
-  moss: "bg-moss/20 text-[#46613e]",
-  ink: "bg-ink text-white",
+  coral: "bg-coral/15 text-[#a54834]", sky: "bg-sky/20 text-[#356b7d]", lavender: "bg-lavender/25 text-[#63547d]",
+  moss: "bg-moss/20 text-[#46613e]", ink: "bg-ink text-white", gold: "bg-[#f5dda3] text-[#735714]",
 } as const;
+const tabs = ["Outcome", "Answers", "Composition", "Compare", "API"] as const;
+type ResultTab = typeof tabs[number];
+
+function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
+function percent(value: number) { return `${Math.round(value * 100)}%`; }
+function humanize(value: string) { return value.replaceAll("-", " ").replaceAll("_", " "); }
+
+function RecordListEditor({ field, value, onChange }: { field: Extract<StateField, { type: "records" }>; value: unknown; onChange: (value: Array<Record<string, string>>) => void }) {
+  const records = Array.isArray(value) ? value as Array<Record<string, string>> : [];
+  return <div className="space-y-3">
+    {records.map((record, index) => <div key={index} className="rounded-2xl border border-ink/10 bg-paper p-4">
+      <div className="mb-3 flex items-center justify-between"><p className="text-xs font-black uppercase tracking-wider text-ink/45">Record {index + 1}</p><button aria-label={`Remove ${field.label} record ${index + 1}`} disabled={records.length <= field.minItems} onClick={() => onChange(records.filter((_, recordIndex) => recordIndex !== index))} className="text-ink/35 hover:text-coral disabled:opacity-20"><Trash2 size={15} /></button></div>
+      <div className="grid gap-3 sm:grid-cols-2">{field.columns.map((column) => <label key={column.id} className={column.multiline ? "sm:col-span-2" : ""}><span className="mb-1 block text-xs font-bold">{column.label}</span>{column.multiline ? <textarea value={String(record[column.id] ?? "")} onChange={(event) => onChange(records.map((item, recordIndex) => recordIndex === index ? { ...item, [column.id]: event.target.value } : item))} className="min-h-20 w-full rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-ink/40" /> : <input value={String(record[column.id] ?? "")} onChange={(event) => onChange(records.map((item, recordIndex) => recordIndex === index ? { ...item, [column.id]: event.target.value } : item))} className="w-full rounded-xl border border-ink/10 bg-white px-3 py-2 text-sm outline-none focus:border-ink/40" />}</label>)}</div>
+    </div>)}
+    <Button type="button" disabled={records.length >= field.maxItems} onClick={() => onChange([...records, Object.fromEntries(field.columns.map((column) => [column.id, ""]))])} className="border border-ink/10 bg-white"><Plus size={15} className="mr-2" /> Add record</Button>
+  </div>;
+}
+
+function StateEditor({ definition, state, onChange }: { definition: ExperimentDefinitionV1; state: ExperimentState; onChange: (state: ExperimentState) => void }) {
+  return <div className="space-y-5">{definition.fields.map((field) => <label key={field.id} className="block">
+    <span className="mb-2 block text-sm font-bold">{field.label}<span className="ml-2 text-xs font-normal text-ink/45">{field.description}</span></span>
+    {field.type === "records" ? <RecordListEditor field={field} value={state[field.id]} onChange={(value) => onChange({ ...state, [field.id]: value })} />
+      : field.type === "multiline" ? <textarea aria-label={field.label} value={String(state[field.id] ?? "")} onChange={(event) => onChange({ ...state, [field.id]: event.target.value })} className="min-h-28 w-full resize-y rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm leading-6 outline-none transition focus:border-ink/40 focus:bg-white" />
+      : field.type === "json" ? <textarea aria-label={field.label} value={JSON.stringify(state[field.id] ?? {}, null, 2)} onChange={(event) => { try { onChange({ ...state, [field.id]: JSON.parse(event.target.value) as unknown }); } catch {} }} className="min-h-28 w-full rounded-2xl border border-ink/10 bg-[#111923] px-4 py-3 font-mono text-xs text-white outline-none" />
+      : <input aria-label={field.label} value={String(state[field.id] ?? "")} onChange={(event) => onChange({ ...state, [field.id]: event.target.value })} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm outline-none transition focus:border-ink/40 focus:bg-white" />}
+  </label>)}</div>;
+}
+
+function AnswerSummary({ answer }: { answer: TypedAnswer }) {
+  if (answer.kind === "choice") return <><span className="capitalize">{humanize(answer.selected)}</span><span>{percent(answer.confidence)} confidence</span></>;
+  if (answer.kind === "score") return <><span>{answer.rawScore.toFixed(2)} / {answer.legend.length - 1}</span><span>{percent(answer.confidence)} confidence</span></>;
+  return <><span>{answer.probabilityYes >= 0.5 ? "Yes" : "No"}</span><span>{percent(answer.probabilityYes)} yes</span></>;
+}
+
+function AnswerCard({ answer }: { answer: TypedAnswer }) {
+  return <details className="group rounded-2xl border border-ink/10 bg-white open:shadow-card">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4"><div><p className="text-xs font-black uppercase tracking-wider text-ink/40">{answer.kind}{answer.recordLabel ? ` · ${answer.recordLabel}` : ""}</p><p className="mt-1 font-black">{answer.label}</p></div><div className="flex items-center gap-4 text-right text-sm font-bold"><span className="hidden items-center gap-2 text-ink/45 sm:flex"><AnswerSummary answer={answer} /></span><ChevronRight size={17} className="transition group-open:rotate-90" /></div></summary>
+    <div className="border-t border-ink/10 p-4"><p className="mb-4 text-sm leading-6 text-ink/55">{answer.instructions}</p>
+      {answer.kind === "choice" && <div className="space-y-4">{Object.entries(answer.probabilities).sort((a, b) => b[1] - a[1]).map(([option, probability]) => <div key={option}><div className="mb-1 flex justify-between text-xs font-bold"><span className="capitalize">{humanize(option)}</span><span>{percent(probability)}</span></div><Progress value={probability} /><p className="mt-1 text-xs text-ink/45">{answer.criteria[option]}</p></div>)}</div>}
+      {answer.kind === "score" && <div className="space-y-3">{answer.legend.map((level) => <div key={level.index} className={cn("rounded-xl border p-3", Math.round(answer.rawScore) === level.index ? "border-ink bg-paper" : "border-ink/5")}><div className="flex items-center justify-between text-xs font-bold"><span>{level.index} · {level.label}</span><span>{percent(answer.probabilities[String(level.index)] ?? 0)}</span></div><p className="mt-1 text-xs text-ink/45">{level.description}</p></div>)}</div>}
+      {answer.kind === "noul" && <div className="grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-moss/10 p-3"><p className="font-black">Yes · {percent(answer.probabilityYes)}</p><p className="mt-1 text-xs text-ink/55">{answer.criteria.true}</p></div><div className="rounded-xl bg-coral/10 p-3"><p className="font-black">No · {percent(answer.probabilityNo)}</p><p className="mt-1 text-xs text-ink/55">{answer.criteria.false}</p></div></div>}
+    </div>
+  </details>;
+}
 
 export function ReflexLabDashboard() {
-  const [scenarioId, setScenarioId] = useState<ScenarioId>("support-triage");
-  const [threshold, setThreshold] = useState(0.8);
-  const scenario = scenarios.find((item) => item.id === scenarioId) ?? scenarios[0];
-  const [fields, setFields] = useState<Record<string, string>>(scenario.sample);
+  const [catalog, setCatalog] = useState<ExperimentDefinitionV1[]>(experiments);
+  const [definition, setDefinition] = useState<ExperimentDefinitionV1>(() => clone(experiments[0]));
+  const [state, setState] = useState<ExperimentState>(() => clone(experiments[0].sampleState));
+  const [activeTab, setActiveTab] = useState<ResultTab>("Outcome");
+  const [previous, setPrevious] = useState<ExperimentResult | null>(null);
   const mutation = trpc.evaluation.evaluate.useMutation();
-  const result = mutation.data as LocalResult;
+  useEffect(() => setCatalog([...experiments, ...loadPresets().map((preset) => preset.definition)]), []);
+  const result = mutation.data as ExperimentResult | undefined;
+  const policy = useMemo(() => result ? evaluatePolicy(definition, result.answers) : null, [definition, result]);
+  const ranking = useMemo(() => result ? calculateRanking(definition, state, result.answers) : [], [definition, result, state]);
+  const comparison = useMemo(() => result ? compareResults(result, previous) : [], [result, previous]);
 
-  const gatePreview = useMemo(() => result ? applyConfidenceGate(result, threshold) : null, [result, threshold]);
-
-  function selectScenario(nextId: ScenarioId) {
-    const next = scenarios.find((item) => item.id === nextId) ?? scenarios[0];
-    setScenarioId(next.id);
-    setFields(next.sample);
-    mutation.reset();
+  function selectExperiment(id: string) {
+    const next = catalog.find((item) => item.id === id) ?? experiments[0];
+    setDefinition(clone(next)); setState(clone(next.sampleState)); setPrevious(null); setActiveTab("Outcome"); mutation.reset();
   }
-
   function evaluate() {
-    mutation.mutate({ scenarioId, fields });
+    mutation.mutate({ definition, state }, { onSuccess(data) { const next = data as ExperimentResult; setPrevious(loadPreviousResult(next.experimentId)); savePreviousResult(next); setActiveTab("Outcome"); } });
   }
+  function updateMetricWeight(id: string, weight: number) { setDefinition((current) => ({ ...current, policy: { ...current.policy, metrics: current.policy.metrics.map((metric) => metric.id === id ? { ...metric, weight } : metric) } })); }
+  function updateThreshold(ruleId: string, conditionIndex: number, value: number) { setDefinition((current) => ({ ...current, policy: { ...current.policy, rules: current.policy.rules.map((rule) => rule.id === ruleId ? { ...rule, all: rule.all.map((condition, index) => index === conditionIndex && condition.type === "metric" ? { ...condition, value } : condition) } : rule) } })); }
 
-  return (
-    <main className="min-h-screen overflow-hidden">
-      <div className="mx-auto max-w-[1500px] px-5 py-6 sm:px-8 lg:px-12">
-        <header className="flex items-center justify-between gap-4 border-b border-ink/10 pb-5">
-          <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white"><Sparkles size={19} /></div><div><p className="text-lg font-black tracking-tight">Reflex Lab</p><p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/50">Fast decisions. Clear confidence.</p></div></div>
-          <div className="hidden items-center gap-2 text-xs font-bold text-ink/50 sm:flex"><span className="h-2 w-2 rounded-full bg-moss" /> LOCAL WORKBENCH <span className="rounded-full border border-ink/10 px-3 py-1">STATELESS</span></div>
-        </header>
-
-        <section className="grid gap-8 pb-16 pt-10 lg:grid-cols-[260px_minmax(0,1fr)_360px]">
-          <aside>
-            <p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-ink/45">Experiments</p>
-            <nav className="space-y-2" aria-label="Decision experiments">
-              {scenarios.map((item) => <button key={item.id} onClick={() => selectScenario(item.id)} className={cn("group flex w-full items-center justify-between rounded-2xl p-3 text-left transition", item.id === scenario.id ? "bg-white shadow-card" : "hover:bg-white/60")}><span className="flex items-center gap-3"><span className={cn("grid h-9 w-9 place-items-center rounded-xl text-xs font-black", accentStyles[item.accent])}>{item.eyebrow.slice(0, 2)}</span><span><span className="block text-sm font-bold">{item.title}</span><span className="mt-0.5 block text-xs text-ink/45">{item.eyebrow}</span></span></span><ArrowRight className={cn("opacity-0 transition group-hover:opacity-50", item.id === scenario.id && "opacity-100")} size={16} /></button>)}
-            </nav>
-            <div className="grain mt-8 rounded-3xl bg-[#e8e8df] p-5"><p className="text-xs font-black uppercase tracking-[0.18em] text-ink/50">One engine</p><p className="mt-3 text-sm leading-6 text-ink/75">Every experiment uses the same choice, score, boolean, confidence, and action pipeline.</p></div>
-          </aside>
-
-          <section className="min-w-0">
-            <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-ink/45">{scenario.eyebrow}</p><h1 className="max-w-2xl text-4xl font-black tracking-[-0.045em] sm:text-5xl">{scenario.title}</h1><p className="mt-3 max-w-xl text-base leading-7 text-ink/60">{scenario.description}</p></div><div className={cn("rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.12em]", accentStyles[scenario.accent])}><Activity className="mr-2 inline" size={14} /> Ready to evaluate</div></div>
-            <Card className="p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><div><h2 className="text-lg font-black">Sample input</h2><p className="mt-1 text-sm text-ink/50">Edit the state before asking Jev for a decision.</p></div><Layers3 size={20} className="text-ink/35" /></div><div className="space-y-5">{scenario.fields.map((field) => <label key={field.id} className="block"><span className="mb-2 block text-sm font-bold">{field.label}<span className="ml-2 text-xs font-normal text-ink/45">{field.description}</span></span>{field.multiline === true ? <textarea aria-label={field.label} value={fields[field.id] ?? ""} onChange={(event) => setFields((current) => ({ ...current, [field.id]: event.target.value }))} className="min-h-28 w-full resize-y rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm leading-6 outline-none transition focus:border-ink/40 focus:bg-white" /> : <input aria-label={field.label} value={fields[field.id] ?? ""} onChange={(event) => setFields((current) => ({ ...current, [field.id]: event.target.value }))} className="w-full rounded-2xl border border-ink/10 bg-paper px-4 py-3 text-sm outline-none transition focus:border-ink/40 focus:bg-white" />}</label>)}</div><div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 pt-5"><p className="text-xs text-ink/45">Provider: <span className="font-bold text-ink/70">OpenRouter · Jev 1.13</span></p><Button onClick={evaluate} disabled={mutation.isPending} className="bg-ink text-white">{mutation.isPending ? <><LoaderCircle className="mr-2 animate-spin" size={16} /> Evaluating</> : <>Evaluate scenario <ArrowRight className="ml-2" size={16} /></>}</Button></div></Card>
-            {mutation.error && <Alert className="mt-5 border-coral/30 bg-coral/10 text-[#8f3c2b]"><ShieldAlert className="mr-2 inline" size={17} /><span className="font-bold">Evaluation failed.</span> {mutation.error.message}<p className="mt-2 text-xs opacity-80">For local work without credentials, set <code>MOCK_JEV=true</code> in <code>.env.local</code>.</p></Alert>}
-          </section>
-
-          <aside className="space-y-5">
-            <Card className="overflow-hidden"><div className="bg-ink p-6 text-white"><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">Shared result</p><h2 className="mt-2 text-2xl font-black">Decision panel</h2></div><Gauge size={25} className="text-white/60" /></div>{result ? <div className="mt-8"><p className="text-sm text-white/55">Winning answer</p><p className="mt-1 text-3xl font-black capitalize">{result.choice.replaceAll("-", " ")}</p><div className="mt-5 flex items-center gap-3"><Progress value={result.confidence} className="flex-1 bg-white/20" /><span className="text-sm font-black">{Math.round(result.confidence * 100)}%</span></div></div> : <div className="mt-8 rounded-2xl border border-white/15 p-4 text-sm leading-6 text-white/65">Run an experiment to see the selected answer, calibrated probabilities, and automation gate.</div>}</div>{result && <div className="space-y-5 p-6"><div>{Object.entries(result.probabilities).map(([option, probability]) => <div key={option} className="mb-3"><div className="mb-1 flex justify-between text-xs font-bold"><span className="capitalize">{option.replaceAll("-", " ")}</span><span>{Math.round(probability * 100)}%</span></div><Progress value={probability} /></div>)}</div><div className={cn("rounded-2xl p-4 text-sm leading-6", gatePreview?.gatePassed ? "bg-moss/15 text-[#46613e]" : "bg-coral/10 text-[#8f3c2b]")}><p className="font-black">{gatePreview?.gatePassed ? <Check className="mr-1 inline" size={16} /> : <ShieldAlert className="mr-1 inline" size={16} />} {gatePreview?.gatePassed ? "Automation may proceed" : "Human review recommended"}</p><p className="mt-1">{gatePreview?.gateMessage}</p></div><div className="grid grid-cols-2 gap-3 text-xs"><div className="rounded-xl bg-paper p-3"><p className="text-ink/45">Latency</p><p className="mt-1 font-black">{result.latencyMs} ms</p></div><div className="rounded-xl bg-paper p-3"><p className="text-ink/45">Tokens</p><p className="mt-1 font-black">{result.tokenUsage ?? "—"}</p></div></div><p className="text-xs text-ink/45">{scenario.simulatedAction}</p></div>}</Card>
-            <Card className="p-6"><div className="flex items-start justify-between gap-4"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-ink/45">Safety dial</p><h2 className="mt-2 text-lg font-black">Confidence threshold</h2></div><span className="rounded-full bg-ink px-3 py-1 text-sm font-black text-white">{Math.round(threshold * 100)}%</span></div><input aria-label="Confidence threshold" type="range" min="0.5" max="0.99" step="0.01" value={threshold} onChange={(event) => setThreshold(Number(event.target.value))} className="mt-6 w-full accent-ink" /><div className="mt-2 flex justify-between text-xs text-ink/40"><span>50% · faster</span><span>99% · safer</span></div><p className="mt-5 text-sm leading-6 text-ink/55">Adjusting the gate is client-side only. It never triggers another provider request.</p></Card>
-          </aside>
+  return <main className="min-h-screen overflow-hidden">
+    <div className="mx-auto max-w-[1700px] px-5 py-6 sm:px-8 lg:px-12">
+      <header className="flex items-center justify-between gap-4 border-b border-ink/10 pb-5">
+        <div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white"><Sparkles size={19} /></div><div><p className="text-lg font-black tracking-tight">Reflex Lab</p><p className="text-xs font-semibold uppercase tracking-[0.22em] text-ink/50">Decision systems, made inspectable.</p></div></div>
+        <div className="flex items-center gap-3"><div className="hidden items-center gap-2 text-xs font-bold text-ink/50 md:flex"><span className="h-2 w-2 rounded-full bg-moss" /> LOCAL WORKBENCH</div><Link href="/studio" className="inline-flex items-center rounded-full bg-ink px-4 py-2 text-sm font-bold text-white"><Wrench size={15} className="mr-2" /> Studio</Link></div>
+      </header>
+      <section className="grid gap-7 pb-16 pt-8 xl:grid-cols-[250px_minmax(460px,0.9fr)_minmax(520px,1.15fr)]">
+        <aside><p className="mb-3 text-xs font-black uppercase tracking-[0.2em] text-ink/45">Capability labs</p><nav className="space-y-2" aria-label="Decision experiments">{catalog.map((item) => <button key={item.id} onClick={() => selectExperiment(item.id)} className={cn("group flex w-full items-center justify-between rounded-2xl p-3 text-left transition", item.id === definition.id ? "bg-white shadow-card" : "hover:bg-white/60")}><span className="flex items-center gap-3"><span className={cn("grid h-9 w-9 place-items-center rounded-xl text-xs font-black", accentStyles[item.accent])}>{item.eyebrow.slice(0, 2)}</span><span><span className="block text-sm font-bold">{item.title}</span><span className="mt-0.5 block text-xs text-ink/45">{item.eyebrow}</span></span></span><ArrowRight className={cn("opacity-0 transition group-hover:opacity-50", item.id === definition.id && "opacity-100")} size={16} /></button>)}</nav>
+          <div className="grain mt-8 rounded-3xl bg-[#e8e8df] p-5"><p className="text-xs font-black uppercase tracking-[0.18em] text-ink/50">Typed evidence</p><p className="mt-3 text-sm leading-6 text-ink/75">Every lab exposes calibrated answers, criteria, score legends, and deterministic policy traces.</p></div>
+        </aside>
+        <section className="min-w-0"><div className="mb-7"><div className="flex flex-wrap items-center justify-between gap-3"><p className="text-xs font-black uppercase tracking-[0.2em] text-ink/45">{definition.eyebrow}</p><div className={cn("rounded-full px-4 py-2 text-xs font-black uppercase tracking-[0.12em]", accentStyles[definition.accent])}><Activity className="mr-2 inline" size={14} /> {definition.questions.length} atomic questions</div></div><h1 className="mt-3 text-4xl font-black tracking-[-0.045em] sm:text-5xl">{definition.title}</h1><p className="mt-3 max-w-2xl text-base leading-7 text-ink/60">{definition.description}</p></div>
+          <Card className="p-5 sm:p-7"><div className="mb-6 flex items-center justify-between"><div><h2 className="text-lg font-black">Experiment state</h2><p className="mt-1 text-sm text-ink/50">Edit the evidence sent to Jev.</p></div><Layers3 size={20} className="text-ink/35" /></div><StateEditor definition={definition} state={state} onChange={setState} /><div className="mt-7 flex flex-wrap items-center justify-between gap-4 border-t border-ink/10 pt-5"><p className="text-xs text-ink/45">Provider: <span className="font-bold text-ink/70">OpenRouter · Jev 1.13</span></p><Button onClick={evaluate} disabled={mutation.isPending} className="bg-ink text-white">{mutation.isPending ? <><LoaderCircle className="mr-2 animate-spin" size={16} /> Evaluating</> : <>Evaluate lab <ArrowRight className="ml-2" size={16} /></>}</Button></div></Card>
+          {mutation.error && <Alert className="mt-5 border-coral/30 bg-coral/10 text-[#8f3c2b]"><ShieldAlert className="mr-2 inline" size={17} /><span className="font-bold">Evaluation failed.</span> {mutation.error.message}<p className="mt-2 text-xs opacity-80">For local work without credentials, set <code>MOCK_JEV=true</code> in <code>.env.local</code>.</p></Alert>}
         </section>
-      </div>
-    </main>
-  );
+        <aside className="min-w-0"><Card className="overflow-hidden"><div className="bg-ink px-5 pt-5 text-white"><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[0.18em] text-white/55">Decision evidence</p><h2 className="mt-1 text-2xl font-black">Result workspace</h2></div><Gauge size={25} className="text-white/60" /></div><div className="mt-5 flex gap-1 overflow-x-auto">{tabs.map((tab) => <button key={tab} onClick={() => setActiveTab(tab)} className={cn("whitespace-nowrap border-b-2 px-3 py-3 text-xs font-bold", activeTab === tab ? "border-white text-white" : "border-transparent text-white/45 hover:text-white/75")}>{tab}</button>)}</div></div>
+          {!result ? <div className="p-6"><div className="rounded-2xl border border-ink/10 bg-paper p-5 text-sm leading-6 text-ink/60">Run the lab to inspect every typed answer, the composition trace, previous-run deltas, and the exact sanitized API payload.</div></div> : <div className="max-h-[calc(100vh-210px)] overflow-y-auto p-5">
+            {activeTab === "Outcome" && policy && <div className="space-y-5"><div className={cn("rounded-2xl p-5", policy.outcome === "act" ? "bg-moss/15 text-[#3f5c38]" : policy.outcome === "stop" ? "bg-coral/15 text-[#8f3c2b]" : "bg-[#f5dda3]/45 text-[#6a5016]")}><p className="text-xs font-black uppercase tracking-widest">{policy.outcome === "act" ? <Check className="mr-1 inline" size={15} /> : <ShieldAlert className="mr-1 inline" size={15} />} {policy.outcome}</p><h3 className="mt-2 text-xl font-black">{policy.recommendation}</h3><p className="mt-3 text-sm opacity-75">Composite signal {percent(policy.score)} · {policy.matchedRuleId ? `matched ${humanize(policy.matchedRuleId)}` : "fallback policy"}</p></div>
+              {ranking.length > 0 && <div><h3 className="mb-3 text-sm font-black">{definition.ranking?.label}</h3><div className="space-y-2">{ranking.map((row, index) => <div key={row.recordIndex} className="flex items-center gap-3 rounded-xl bg-paper p-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-ink text-xs font-black text-white">{index + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-bold">{row.label}</span><span className="text-sm font-black">{percent(row.score)}</span></div>)}</div></div>}
+              <div className="grid grid-cols-2 gap-3 text-xs"><div className="rounded-xl bg-paper p-3"><p className="text-ink/45">Latency</p><p className="mt-1 font-black">{result.telemetry.latencyMs} ms</p></div><div className="rounded-xl bg-paper p-3"><p className="text-ink/45">Tokens</p><p className="mt-1 font-black">{result.telemetry.usage.totalTokens ?? "—"}</p></div><div className="rounded-xl bg-paper p-3"><p className="text-ink/45">Model</p><p className="mt-1 truncate font-black">{result.telemetry.model}</p></div><div className="rounded-xl bg-paper p-3"><p className="text-ink/45">Cost</p><p className="mt-1 font-black">{result.telemetry.cost === null ? "—" : `$${result.telemetry.cost.toFixed(6)}`}</p></div></div><p className="text-xs leading-5 text-ink/45">{definition.simulatedAction}</p></div>}
+            {activeTab === "Answers" && <div className="space-y-3">{result.answers.map((answer) => <AnswerCard key={answer.id} answer={answer} />)}</div>}
+            {activeTab === "Composition" && policy && <div className="space-y-6"><div><h3 className="text-sm font-black">Weighted metrics</h3><p className="mt-1 text-xs text-ink/45">These controls recompute locally without another provider request.</p><div className="mt-4 space-y-4">{policy.metrics.map((metric) => <div key={metric.id} className="rounded-xl bg-paper p-3"><div className="flex justify-between text-xs font-bold"><span>{metric.label}</span><span>{percent(metric.effectiveValue)} × {metric.weight.toFixed(1)} = {metric.contribution.toFixed(2)}</span></div><input aria-label={`${metric.label} weight`} type="range" min="0" max="3" step="0.1" value={metric.weight} onChange={(event) => updateMetricWeight(metric.id, Number(event.target.value))} className="mt-3 w-full accent-ink" /></div>)}</div></div>
+              <div><h3 className="mb-3 text-sm font-black">Ordered rules</h3><div className="space-y-3">{policy.rules.map((rule) => <div key={rule.id} className={cn("rounded-xl border p-3", rule.passed ? "border-moss/40 bg-moss/10" : "border-ink/10")}><div className="flex justify-between gap-3"><p className="text-sm font-black">{rule.label}</p><span className="text-xs font-black uppercase">{rule.passed ? "passed" : "failed"}</span></div>{rule.conditions.map((condition, index) => <div key={index} className="mt-3 rounded-lg bg-white/70 p-2 text-xs"><div className="flex items-center justify-between gap-2"><span>{condition.description}</span><span className={condition.passed ? "text-moss" : "text-coral"}>{condition.passed ? "true" : "false"}</span></div>{definition.policy.rules.find((item) => item.id === rule.id)?.all[index]?.type === "metric" && <input aria-label={`${rule.label} condition ${index + 1}`} type="range" min="0" max="1" step="0.05" value={Number(condition.expected)} onChange={(event) => updateThreshold(rule.id, index, Number(event.target.value))} className="mt-2 w-full accent-ink" />}</div>)}</div>)}</div></div></div>}
+            {activeTab === "Compare" && <div>{comparison.length === 0 ? <p className="rounded-xl bg-paper p-4 text-sm text-ink/55">Run this lab again in the current browser session to compare answer and probability deltas.</p> : <div className="space-y-2">{comparison.map((delta) => <div key={delta.id} className="rounded-xl border border-ink/10 p-3"><div className="flex justify-between gap-3"><p className="text-sm font-bold">{delta.label}</p><span className={cn("text-xs font-black", (delta.delta ?? 0) > 0 ? "text-moss" : (delta.delta ?? 0) < 0 ? "text-coral" : "text-ink/40")}>{delta.delta === null ? "new" : `${delta.delta >= 0 ? "+" : ""}${Math.round(delta.delta * 100)} pts`}</span></div><p className="mt-1 text-xs text-ink/45">{String(delta.previous ?? "—")} → {String(delta.current)}</p></div>)}</div>}</div>}
+            {activeTab === "API" && <div className="space-y-4"><div><h3 className="mb-2 text-xs font-black uppercase tracking-wider text-ink/45">Sanitized request</h3><pre className="max-h-80 overflow-auto rounded-xl bg-[#111923] p-4 text-[11px] leading-5 text-white">{JSON.stringify(result.request, null, 2)}</pre></div><div><h3 className="mb-2 text-xs font-black uppercase tracking-wider text-ink/45">Raw provider response</h3><pre className="max-h-80 overflow-auto rounded-xl bg-[#111923] p-4 text-[11px] leading-5 text-white">{JSON.stringify(result.rawResponse, null, 2)}</pre></div></div>}
+          </div>}
+        </Card></aside>
+      </section>
+    </div>
+  </main>;
 }
