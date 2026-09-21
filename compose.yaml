@@ -1,0 +1,18 @@
+services:
+  reflex-lab:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_JEV_MODEL: ${OPENROUTER_JEV_MODEL:-typesafe/jev-1.13}
+      OPENROUTER_SITE_URL: ${OPENROUTER_SITE_URL:-http://localhost:3000}
+      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-Reflex Lab}
+      MOCK_JEV: ${MOCK_JEV:-false}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
