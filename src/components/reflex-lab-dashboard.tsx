@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
@@ -43,6 +43,10 @@ import { Card } from "@/components/ui/card";
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function isEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 function RecordListEditor({
@@ -214,16 +218,28 @@ export function ReflexLabDashboard() {
   const [labMenuOpen, setLabMenuOpen] = useState(false);
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [previous, setPrevious] = useState<ExperimentResult | null>(null);
+  const definitionRef = useRef(definition);
   const mutation = trpc.evaluation.evaluate.useMutation();
   useEffect(() => {
+    definitionRef.current = definition;
+  }, [definition]);
+  useEffect(() => {
+    const previousDefinition = definitionRef.current;
     setCatalog([
       ...localizedExperiments(language),
       ...loadPresets().map((preset) => preset.definition),
     ]);
-    setDefinition((current) => {
-      const builtin = experiments.find((item) => item.id === current.id);
-      return builtin ? clone(localizeDefinition(builtin, language)) : current;
-    });
+    const builtin = experiments.find(
+      (item) => item.id === previousDefinition.id,
+    );
+    if (!builtin) return;
+    const next = clone(localizeDefinition(builtin, language));
+    setDefinition(next);
+    setState((currentState) =>
+      isEqual(currentState, previousDefinition.sampleState)
+        ? clone(next.sampleState)
+        : currentState,
+    );
   }, [language]);
   const result = mutation.data as ExperimentResult | undefined;
   const budgetExhausted = mutation.error?.data?.code === "PAYMENT_REQUIRED";

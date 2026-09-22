@@ -86,10 +86,19 @@ test("switches the workbench between English and Brazilian Portuguese", async ({
   await expect(
     page.getByRole("button", { name: "Avaliar laboratório" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Texto do chamado")).toHaveValue(
+    /Fui cobrado duas vezes/,
+  );
+  await expect(page.getByLabel("Contexto da conta")).toHaveValue(
+    /Plano Pro ativo/,
+  );
   await page.getByRole("button", { name: "English" }).click();
   await expect(
     page.getByRole("heading", { name: "Support orchestration" }),
   ).toBeVisible();
+  await expect(page.getByLabel("Ticket text")).toHaveValue(
+    /I was charged twice/,
+  );
 });
 
 test("evaluates all six capability labs and exposes typed answer evidence", async ({

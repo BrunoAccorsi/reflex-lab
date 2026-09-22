@@ -83,7 +83,7 @@ export function LabSelector({
         id="lab-menu"
         className={cn(
           "mt-2 grid gap-2 transition-menu duration-300 ease-out motion-reduce:transition-none sm:grid-cols-2 lg:relative lg:mt-0 lg:grid-cols-1",
-          mobileMenuOpen ? "grid" : "hidden",
+          mobileMenuOpen ? "grid" : "hidden lg:grid",
           desktopMenuOpen
             ? "lg:visible lg:pointer-events-auto lg:translate-x-0 lg:opacity-100"
             : "lg:absolute lg:invisible lg:pointer-events-none lg:-translate-x-3 lg:opacity-0",
