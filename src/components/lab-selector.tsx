@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowRight, ChevronDown, PanelLeftClose } from "lucide-react";
 import { type ExperimentDefinitionV1 } from "@/lib/experiments";
 import { accentStyles } from "@/lib/experiment-theme";
@@ -28,7 +29,12 @@ export function LabSelector({
   const { t } = useLanguage();
   return (
     <aside className="relative min-w-0 lg:sticky lg:top-6">
-      <div className="mb-3 hidden items-center justify-between gap-2 lg:flex">
+      <div
+        className={cn(
+          "mb-3 hidden items-center gap-2 lg:flex",
+          desktopMenuOpen ? "justify-between" : "justify-center",
+        )}
+      >
         <p
           className={cn(
             "max-w-menu-label overflow-hidden whitespace-nowrap text-xs font-black uppercase tracking-label text-ink/45 transition-menu-label duration-500 ease-out motion-reduce:transition-none",
@@ -44,16 +50,22 @@ export function LabSelector({
           aria-label={desktopMenuOpen ? t("collapseLabs") : t("expandLabs")}
           aria-expanded={desktopMenuOpen}
           onClick={() => onDesktopMenuToggle()}
-          className="group grid h-11 w-11 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-card transition-all duration-500 hover:scale-105 hover:bg-paper motion-reduce:transition-none"
+          className="group grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-card transition-all duration-500 hover:scale-105 hover:bg-paper motion-reduce:transition-none"
         >
-          <span
-            className={cn(
-              "transition-transform duration-500 ease-smooth motion-reduce:transition-none",
-              !desktopMenuOpen && "rotate-180",
-            )}
-          >
-            <PanelLeftClose size={19} />
-          </span>
+          {desktopMenuOpen ? (
+            <span className="transition-transform duration-500 ease-smooth motion-reduce:transition-none group-hover:-translate-x-0.5">
+              <PanelLeftClose size={19} />
+            </span>
+          ) : (
+            <Image
+              src="/icon.svg"
+              alt=""
+              width={24}
+              height={24}
+              aria-hidden="true"
+              className="rounded-lg transition-transform duration-500 ease-smooth motion-reduce:transition-none group-hover:scale-110"
+            />
+          )}
         </button>
       </div>
       <button

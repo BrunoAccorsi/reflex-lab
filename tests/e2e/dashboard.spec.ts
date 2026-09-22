@@ -45,6 +45,9 @@ test("keeps the lab selector and workspaces usable across screen sizes", async (
         name: "Expand capability labs",
       });
       await expect(expand).toHaveAttribute("aria-expanded", "false");
+      const compactToggle = await expand.boundingBox();
+      expect(compactToggle?.width).toBeGreaterThanOrEqual(40);
+      expect(compactToggle?.height).toBeGreaterThanOrEqual(40);
       await expect(
         page.getByRole("navigation", { name: "Compact decision experiments" }),
       ).toBeVisible();
