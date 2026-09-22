@@ -30,7 +30,7 @@ export function LabSelector({
     <aside className="relative min-w-0 lg:sticky lg:top-6">
       <div
         className={cn(
-          "mb-3 hidden items-center gap-2 lg:flex",
+          "relative mb-3 hidden items-center gap-2 lg:flex",
           desktopMenuOpen ? "justify-between" : "justify-center",
         )}
       >
@@ -39,7 +39,7 @@ export function LabSelector({
             "max-w-menu-label overflow-hidden whitespace-nowrap text-xs font-black uppercase tracking-label text-ink/45 transition-menu-label duration-500 ease-out motion-reduce:transition-none",
             desktopMenuOpen
               ? "translate-x-0 opacity-100"
-              : "pointer-events-none max-w-0 -translate-x-2 opacity-0",
+              : "pointer-events-none absolute max-w-0 -translate-x-2 opacity-0",
           )}
         >
           {t("capabilityLabs")}
@@ -137,7 +137,7 @@ export function LabSelector({
       </nav>
       <nav
         className={cn(
-          "hidden flex-col gap-2 transition-menu duration-300 ease-out motion-reduce:transition-none lg:flex",
+          "hidden flex-col items-center gap-2 transition-menu duration-300 ease-out motion-reduce:transition-none lg:flex",
           desktopMenuOpen
             ? "lg:pointer-events-none lg:invisible lg:absolute lg:scale-95 lg:opacity-0"
             : "lg:visible lg:translate-x-0 lg:scale-100 lg:opacity-100",

@@ -52,6 +52,20 @@ test("keeps the lab selector and workspaces usable across screen sizes", async (
         page.getByRole("navigation", { name: "Compact decision experiments" }),
       ).toBeVisible();
       if (width >= 1280) {
+        const compactNav = page.getByRole("navigation", {
+          name: "Compact decision experiments",
+        });
+        const compactItem = await compactNav
+          .getByRole("button", { name: "Support orchestration" })
+          .boundingBox();
+        expect(compactItem).not.toBeNull();
+        expect(
+          Math.abs(
+            compactToggle!.x +
+              compactToggle!.width / 2 -
+              (compactItem!.x + compactItem!.width / 2),
+          ),
+        ).toBeLessThanOrEqual(1);
         const form = await page
           .getByRole("heading", { name: "Experiment state" })
           .boundingBox();
