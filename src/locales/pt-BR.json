@@ -1,0 +1,939 @@
+{
+  "ui": {
+    "language": "Idioma",
+    "english": "English",
+    "portuguese": "Português (Brasil)",
+    "localWorkbench": "WORKBENCH LOCAL",
+    "studio": "Studio",
+    "capabilityLabs": "Laboratórios de capacidade",
+    "decisionExperiments": "Experimentos de decisão",
+    "compactDecisionExperiments": "Experimentos compactos",
+    "typedEvidence": "Evidências tipadas",
+    "typedEvidenceBody": "Cada laboratório expõe respostas calibradas, critérios, legendas de pontuação e rastros determinísticos de política.",
+    "experimentState": "Estado do experimento",
+    "editEvidence": "Edite as evidências enviadas ao Jev.",
+    "provider": "Provedor",
+    "evaluate": "Avaliar laboratório",
+    "evaluating": "Avaliando",
+    "decisionEvidence": "Evidências da decisão",
+    "resultWorkspace": "Workspace de resultados",
+    "resultViews": "Visões de resultado",
+    "runLab": "Execute o laboratório para inspecionar cada resposta tipada, o rastro de composição, as diferenças da execução anterior e o payload de API sanitizado.",
+    "confidence": "confiança",
+    "yes": "Sim",
+    "no": "Não",
+    "yesShort": "sim",
+    "record": "Registro",
+    "addRecord": "Adicionar registro",
+    "remove": "Remover",
+    "latency": "Latência",
+    "tokens": "Tokens",
+    "model": "Modelo",
+    "cost": "Custo",
+    "weightedMetrics": "Métricas ponderadas",
+    "recompute": "Estes controles recalculam localmente sem outra requisição ao provedor.",
+    "orderedRules": "Regras ordenadas",
+    "passed": "aprovada",
+    "failed": "reprovada",
+    "sanitizedRequest": "Solicitação sanitizada",
+    "rawResponse": "Resposta bruta do provedor",
+    "compareEmpty": "Execute este laboratório novamente na sessão atual para comparar respostas e diferenças de probabilidade.",
+    "newValue": "nova",
+    "budgetExhausted": "Orçamento esgotado.",
+    "evaluationFailed": "A avaliação falhou.",
+    "mockHint": "Para trabalhar localmente sem credenciais, defina",
+    "validSchema": "Esquema válido",
+    "validationErrors": "erros de validação",
+    "definitionErrors": "Erros na definição",
+    "invalidValue": "Valor inválido",
+    "invalidJson": "JSON inválido",
+    "templateLoaded": "Modelo carregado. Salve para criar um preset personalizado.",
+    "presetSaved": "Preset salvo localmente.",
+    "presetCreated": "Preset personalizado criado localmente.",
+    "presetDuplicated": "Preset duplicado.",
+    "presetImported": "Importado como preset personalizado.",
+    "presetRemoved": "Preset personalizado removido deste navegador.",
+    "startFrom": "Começar a partir de",
+    "chooseTemplate": "Escolha um modelo",
+    "builtInTemplate": "Modelo integrado",
+    "blankExperiment": "Experimento em branco",
+    "newBlank": "Novo em branco",
+    "browserPresets": "Presets do navegador",
+    "savedPresets": "Definições personalizadas salvas aparecem aqui.",
+    "save": "Salvar",
+    "duplicate": "Duplicar",
+    "reset": "Redefinir",
+    "export": "Exportar",
+    "import": "Importar",
+    "delete": "Excluir",
+    "visualJson": "Edite visualmente ou trabalhe diretamente na definição JSON sincronizada. Os modelos integrados nunca são modificados.",
+    "definition": "Definição",
+    "questions": "Perguntas",
+    "policy": "Política",
+    "json": "JSON",
+    "title": "Título",
+    "identifier": "Identificador",
+    "description": "Descrição",
+    "stateFields": "Campos de estado",
+    "addField": "Adicionar campo",
+    "atomicQuestions": "Perguntas atômicas",
+    "staticQuestions": "Perguntas estáticas são executadas uma vez; perguntas de registro se repetem para uma lista de registros.",
+    "repeat": "Repetir",
+    "static": "Estática",
+    "fullDefinitionJson": "JSON completo da definição",
+    "experimentDefinitionJson": "JSON da definição do experimento",
+    "choice": "escolha",
+    "score": "pontuação",
+    "noul": "sim/não",
+    "newChoice": "Nova escolha",
+    "newScore": "Nova pontuação",
+    "newYesNo": "Nova verificação sim/não",
+    "chooseBest": "Escolha a opção mais sustentada.",
+    "closestLevel": "Selecione o nível ordenado mais próximo.",
+    "determineSupported": "Determine se a proposição é sustentada.",
+    "evidenceA": "As evidências sustentam a opção A.",
+    "evidenceB": "As evidências sustentam a opção B.",
+    "littleEvidence": "Poucas evidências.",
+    "strongEvidence": "Evidências fortes.",
+    "evidenceSupportsYes": "As evidências sustentam sim.",
+    "evidenceSupportsNo": "As evidências sustentam não.",
+    "weightedMetricsHelp": "Pesos e inversões são composição determinística no cliente.",
+    "orderedOutcomeRules": "Regras de resultado ordenadas",
+    "act": "agir",
+    "review": "revisar",
+    "stop": "parar",
+    "proceed": "Prosseguir",
+    "confirm": "Confirmar",
+    "inspect": "Inspecionar",
+    "kindChoice": "Escolha",
+    "kindScore": "Pontuação",
+    "kindNoul": "Sim/não",
+    "true": "verdadeiro",
+    "false": "falso",
+    "openCapabilityLabs": "Laboratórios de capacidade",
+    "backToLabs": "Laboratórios de capacidade",
+    "studioTitle": "Jev Lab Studio",
+    "studioSubtitle": "Autoria visual e JSON de experimentos",
+    "experimentDefinition": "ExperimentDefinitionV1",
+    "localLanguage": "Tradução para português disponível",
+    "changedLanguage": "Idioma alterado para português",
+    "selectedLanguage": "Português (Brasil)",
+    "outcome": "Resultado",
+    "answers": "Respostas",
+    "composition": "Composição",
+    "compare": "Comparar",
+    "api": "API",
+    "matched": "correspondente",
+    "fallbackPolicy": "política alternativa",
+    "compositeSignal": "Sinal composto",
+    "questionCount": "perguntas atômicas",
+    "experiment": "experimento",
+    "action": "Ação",
+    "criteria": "Critérios",
+    "levels": "Níveis",
+    "fieldType": "Tipo de campo",
+    "text": "Texto",
+    "multiline": "Múltiplas linhas",
+    "records": "Registros",
+    "columnName": "Nome",
+    "removeField": "Excluir campo",
+    "removeQuestion": "Excluir pergunta",
+    "removeMetric": "Excluir métrica",
+    "threshold": "limite",
+    "condition": "condição",
+    "instructions": "instruções",
+    "copied": "Copiado",
+    "noPrevious": "Nenhum resultado anterior",
+    "current": "atual",
+    "previous": "anterior",
+    "switchLanguage": "Alterar idioma",
+    "englishFlag": "🇺🇸",
+    "portugueseFlag": "🇧🇷"
+  },
+  "definitions": {
+    "support-orchestration": {
+      "title": "Orquestração de suporte",
+      "description": "Transforme uma mensagem de cliente em uma política transparente de roteamento, escalonamento e acompanhamento.",
+      "simulatedAction": "Crie uma rota simulada, copie equipes secundárias ou aguarde esclarecimento humano.",
+      "fields": {
+        "ticket": {
+          "label": "Texto do chamado",
+          "description": "A mensagem mais recente do cliente."
+        },
+        "context": {
+          "label": "Contexto da conta",
+          "description": "Plano, histórico e contexto operacional."
+        }
+      },
+      "sampleState": {
+        "ticket": "Fui cobrado duas vezes e preciso estornar um dos pagamentos hoje. Esta é minha segunda mensagem.",
+        "context": "Plano Pro ativo. Duas cobranças idênticas foram registradas com cinco minutos de diferença. Nenhuma credencial foi incluída."
+      },
+      "questions": {
+        "topic": {
+          "label": "Tema principal",
+          "instructions": "Qual equipe é responsável pelo problema principal?",
+          "criteria": {
+            "billing": "Cobranças, faturas, reembolsos ou formas de pagamento.",
+            "technical": "Comportamento do produto, falhas ou integrações.",
+            "account": "Identidade, acesso, plano ou alterações de perfil.",
+            "general": "Nenhuma categoria especializada é claramente sustentada."
+          }
+        },
+        "resolution": {
+          "label": "Solução solicitada",
+          "instructions": "Qual solução o cliente está pedindo?",
+          "criteria": {
+            "refund": "Devolver um pagamento ou estornar uma cobrança.",
+            "troubleshoot": "Diagnosticar ou corrigir o comportamento do produto.",
+            "explain": "Fornecer informação ou uma explicação.",
+            "change": "Alterar conta, plano ou configurações."
+          }
+        },
+        "tone": {
+          "label": "Tom do cliente",
+          "instructions": "Qual tom é mais evidente?",
+          "criteria": {
+            "calm": "Neutro e objetivo.",
+            "concerned": "Preocupado ou buscando segurança.",
+            "frustrated": "Insatisfeito ou repetindo um pedido não resolvido.",
+            "hostile": "Linguagem ameaçadora ou abusiva."
+          }
+        },
+        "urgency": {
+          "label": "Urgência operacional",
+          "instructions": "Urgência operacional. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma urgência é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Urgência limitada é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Urgência mista ou moderada é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte urgência é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Urgência excepcional é sustentada pelas evidências."
+            }
+          ]
+        },
+        "humanEscalation": {
+          "label": "Isso exige escalonamento humano?",
+          "instructions": "Isso exige escalonamento humano?",
+          "criteria": {
+            "true": "Uma política, exceção ou dano ao cliente exige uma pessoa.",
+            "false": "Um fluxo automatizado padrão pode continuar com segurança."
+          }
+        },
+        "repeatContact": {
+          "label": "É um contato repetido?",
+          "instructions": "É um contato repetido?",
+          "criteria": {
+            "true": "O estado indica que o cliente já contatou o suporte sobre este problema.",
+            "false": "Não há evidência de contato repetido."
+          }
+        },
+        "credentialRisk": {
+          "label": "Credenciais sensíveis foram expostas?",
+          "instructions": "Credenciais sensíveis foram expostas?",
+          "criteria": {
+            "true": "Senhas, tokens, dados completos de pagamento ou segredos aparecem.",
+            "false": "Nenhuma credencial sensível aparece."
+          }
+        }
+      },
+      "metrics": {
+        "urgency": "Urgência",
+        "escalation": "Escalonamento humano",
+        "repeat": "Contato repetido",
+        "credential": "Exposição de credenciais"
+      },
+      "rules": {
+        "protect-secrets": {
+          "label": "Proteger credenciais expostas",
+          "recommendation": "Pare a automação e envie o chamado para a fila de suporte com conhecimento de segurança."
+        },
+        "escalate": {
+          "label": "Escalonar casos complexos ou urgentes",
+          "recommendation": "Direcione para a equipe selecionada e exija um responsável humano."
+        },
+        "billing-route": {
+          "label": "Automatizar rota de cobrança padrão",
+          "recommendation": "Direcione para Cobrança e anexe o sinal da solução solicitada."
+        }
+      },
+      "fallback": "Direcione para a equipe selecionada e peça a um agente para verificar a solução."
+    },
+    "tool-safety": {
+      "title": "Barreira de segurança para chamadas de ferramentas",
+      "description": "Combine seleção de ação, risco ordenado e verificações explícitas de segurança antes da execução simulada.",
+      "simulatedAction": "Registre prosseguir, confirmar ou parar; nenhuma ferramenta ou ação real no computador é executada.",
+      "fields": {
+        "screen": {
+          "label": "Estado observado",
+          "description": "O que está visível na aplicação."
+        },
+        "goal": {
+          "label": "Objetivo do usuário",
+          "description": "O resultado autorizado."
+        }
+      },
+      "sampleState": {
+        "screen": "Um formulário de configurações do workspace está aberto. Salvar afeta todos os membros e não há aviso de desfazer.",
+        "goal": "Salvar somente depois de confirmar que o impacto em todo o workspace foi compreendido."
+      },
+      "questions": {
+        "action": {
+          "label": "Próxima ação segura",
+          "instructions": "Escolha a próxima ação útil mais segura.",
+          "criteria": {
+            "proceed": "A ação solicitada é autorizada, delimitada e segura para executar.",
+            "confirm": "Uma consequência relevante exige confirmação explícita.",
+            "inspect": "É preciso inspecionar mais estado antes de decidir.",
+            "stop": "A ação não deve prosseguir."
+          }
+        },
+        "risk": {
+          "label": "Risco da ação",
+          "instructions": "Risco da ação. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixo",
+              "description": "Quase nenhum risco é sustentado pelas evidências."
+            },
+            {
+              "label": "Baixo",
+              "description": "Risco limitado é sustentado pelas evidências."
+            },
+            {
+              "label": "Moderado",
+              "description": "Risco misto ou moderado é sustentado pelas evidências."
+            },
+            {
+              "label": "Alto",
+              "description": "Forte risco é sustentado pelas evidências."
+            },
+            {
+              "label": "Muito alto",
+              "description": "Risco excepcional é sustentado pelas evidências."
+            }
+          ]
+        },
+        "authorized": {
+          "label": "A ação foi explicitamente autorizada?",
+          "instructions": "A ação foi explicitamente autorizada?",
+          "criteria": {
+            "true": "O usuário autorizou claramente esta ação e este escopo.",
+            "false": "A autorização está ausente, ambígua ou é mais restrita."
+          }
+        },
+        "destructive": {
+          "label": "A ação pode causar impacto destrutivo?",
+          "instructions": "A ação pode causar impacto destrutivo?",
+          "criteria": {
+            "true": "Ela pode excluir, sobrescrever, publicar, pagar ou alterar estado compartilhado de forma relevante.",
+            "false": "É somente leitura ou não destrutiva de forma segura."
+          }
+        },
+        "reversible": {
+          "label": "A ação é facilmente reversível?",
+          "instructions": "A ação é facilmente reversível?",
+          "criteria": {
+            "true": "Há um caminho confiável de desfazer ou recuperação.",
+            "false": "A recuperação está ausente, incerta ou é custosa."
+          }
+        },
+        "scopeClear": {
+          "label": "O escopo afetado está claro?",
+          "instructions": "O escopo afetado está claro?",
+          "criteria": {
+            "true": "O alvo exato e o raio de impacto estão explícitos.",
+            "false": "O alvo ou o raio de impacto é ambíguo."
+          }
+        }
+      },
+      "metrics": {
+        "risk": "Risco",
+        "authorization": "Autorização",
+        "destructive": "Destrutividade",
+        "reversibility": "Reversibilidade",
+        "scope": "Clareza do escopo"
+      },
+      "rules": {
+        "stop-unauthorized": {
+          "label": "Parar ação não autorizada",
+          "recommendation": "Pare porque a autorização não é suficientemente sustentada."
+        },
+        "confirm-destructive": {
+          "label": "Confirmar ação destrutiva",
+          "recommendation": "Peça confirmação explícita antes da ação simulada."
+        },
+        "proceed": {
+          "label": "Prosseguir quando delimitado",
+          "recommendation": "Prossiga com a ação simulada selecionada."
+        }
+      },
+      "fallback": "Inspecione os detalhes ou peça confirmação antes de prosseguir."
+    },
+    "opportunity-scorecard": {
+      "title": "Scorecard de oportunidade",
+      "description": "Componha vários julgamentos ordenados em uma pontuação de oportunidade editável e inspecionável.",
+      "simulatedAction": "Coloque a oportunidade em uma faixa de explorar, validar ou perseguir.",
+      "fields": {
+        "opportunity": {
+          "label": "Resumo da oportunidade",
+          "description": "Problema, público e solução proposta."
+        },
+        "evidence": {
+          "label": "Evidências disponíveis",
+          "description": "Pesquisa, demanda, restrições e estimativas."
+        }
+      },
+      "sampleState": {
+        "opportunity": "Adicionar limites e alertas de uso por equipe para contas em crescimento.",
+        "evidence": "18 entrevistas; 11 equipes controlam gastos manualmente. Duas renovações enterprise mencionam controle de custos. Estimativa de seis semanas de engenharia."
+      },
+      "questions": {
+        "impact": {
+          "label": "Impacto potencial no cliente",
+          "instructions": "Impacto potencial no cliente. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixo",
+              "description": "Quase nenhum impacto no cliente é sustentado pelas evidências."
+            },
+            {
+              "label": "Baixo",
+              "description": "Impacto limitado no cliente é sustentado pelas evidências."
+            },
+            {
+              "label": "Moderado",
+              "description": "Impacto misto ou moderado no cliente é sustentado pelas evidências."
+            },
+            {
+              "label": "Alto",
+              "description": "Forte impacto no cliente é sustentado pelas evidências."
+            },
+            {
+              "label": "Muito alto",
+              "description": "Impacto excepcional no cliente é sustentado pelas evidências."
+            }
+          ]
+        },
+        "evidence": {
+          "label": "Força das evidências",
+          "instructions": "Força das evidências. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma força das evidências é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Força limitada das evidências é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Força mista ou moderada das evidências é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte força das evidências é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Força excepcional das evidências é sustentada pelas evidências."
+            }
+          ]
+        },
+        "fit": {
+          "label": "Aderência estratégica",
+          "instructions": "Aderência estratégica. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma aderência estratégica é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Aderência estratégica limitada é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Aderência estratégica mista ou moderada é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte aderência estratégica é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Aderência estratégica excepcional é sustentada pelas evidências."
+            }
+          ]
+        },
+        "effort": {
+          "label": "Esforço de implementação",
+          "instructions": "Esforço de implementação. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixo",
+              "description": "Quase nenhum esforço de implementação é sustentado pelas evidências."
+            },
+            {
+              "label": "Baixo",
+              "description": "Esforço de implementação limitado é sustentado pelas evidências."
+            },
+            {
+              "label": "Moderado",
+              "description": "Esforço de implementação misto ou moderado é sustentado pelas evidências."
+            },
+            {
+              "label": "Alto",
+              "description": "Forte esforço de implementação é sustentado pelas evidências."
+            },
+            {
+              "label": "Muito alto",
+              "description": "Esforço de implementação excepcional é sustentado pelas evidências."
+            }
+          ]
+        },
+        "risk": {
+          "label": "Risco de entrega e adoção",
+          "instructions": "Risco de entrega e adoção. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixo",
+              "description": "Quase nenhum risco de entrega e adoção é sustentado pelas evidências."
+            },
+            {
+              "label": "Baixo",
+              "description": "Risco de entrega e adoção limitado é sustentado pelas evidências."
+            },
+            {
+              "label": "Moderado",
+              "description": "Risco de entrega e adoção misto ou moderado é sustentado pelas evidências."
+            },
+            {
+              "label": "Alto",
+              "description": "Forte risco de entrega e adoção é sustentado pelas evidências."
+            },
+            {
+              "label": "Muito alto",
+              "description": "Risco de entrega e adoção excepcional é sustentado pelas evidências."
+            }
+          ]
+        }
+      },
+      "metrics": {
+        "impact": "Impacto",
+        "evidence": "Evidências",
+        "fit": "Aderência estratégica",
+        "effort": "Baixo esforço",
+        "risk": "Baixo risco"
+      },
+      "rules": {
+        "pursue": {
+          "label": "Perseguir oportunidades fortes",
+          "recommendation": "Mova a oportunidade para o planejamento de descoberta e entrega."
+        },
+        "validate": {
+          "label": "Validar evidências fracas",
+          "recommendation": "Execute uma etapa de validação focada antes de comprometer capacidade."
+        }
+      },
+      "fallback": "Mantenha a oportunidade em exploração e resolva a pontuação mais fraca."
+    },
+    "candidate-matching": {
+      "title": "Compatibilidade candidato-vaga",
+      "description": "Compare as mesmas perguntas de aderência baseadas em evidências entre candidatos sem automatizar uma decisão de contratação.",
+      "simulatedAction": "Classifique as evidências para análise do recrutador; nunca contrate ou rejeite automaticamente.",
+      "fields": {
+        "role": {
+          "label": "Requisitos da vaga",
+          "description": "Resultados, habilidades e restrições."
+        },
+        "candidates": {
+          "label": "Candidatos",
+          "description": "Resumos de evidências para comparação.",
+          "columns": {
+            "name": "Nome",
+            "evidence": "Evidências"
+          }
+        }
+      },
+      "sampleState": {
+        "role": "Engenheiro de produto sênior: TypeScript, arquitetura de sistemas, entrega multifuncional e mentoria.",
+        "candidates": [
+          {
+            "name": "Alex",
+            "evidence": "Liderou uma migração de plataforma TypeScript; orientou quatro engenheiros; poucos exemplos de descoberta de produto."
+          },
+          {
+            "name": "Jordan",
+            "evidence": "Entregou três produtos multifuncionais; forte descoberta com clientes; profundidade moderada em arquitetura de sistemas."
+          }
+        ]
+      },
+      "questions": {
+        "skillsFit": {
+          "label": "Aderência às habilidades exigidas",
+          "instructions": "Aderência às habilidades exigidas. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma aderência às habilidades é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Aderência limitada às habilidades é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Aderência mista ou moderada às habilidades é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte aderência às habilidades é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Aderência excepcional às habilidades é sustentada pelas evidências."
+            }
+          ]
+        },
+        "outcomesFit": {
+          "label": "Evidências de resultados",
+          "instructions": "Evidências de resultados. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma evidência de resultados é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Evidência limitada de resultados é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Evidência mista ou moderada de resultados é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte evidência de resultados é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Evidência excepcional de resultados é sustentada pelas evidências."
+            }
+          ]
+        },
+        "collaborationFit": {
+          "label": "Evidências de colaboração",
+          "instructions": "Evidências de colaboração. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma evidência de colaboração é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Evidência limitada de colaboração é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Evidência mista ou moderada de colaboração é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte evidência de colaboração é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Evidência excepcional de colaboração é sustentada pelas evidências."
+            }
+          ]
+        },
+        "evidenceSufficient": {
+          "label": "As evidências são suficientes para a aderência alegada?",
+          "instructions": "As evidências são suficientes para a aderência alegada?",
+          "criteria": {
+            "true": "Evidências específicas e relevantes sustentam a avaliação.",
+            "false": "As evidências estão ausentes, vagas ou não são comparáveis."
+          }
+        }
+      },
+      "metrics": {
+        "skills": "Aderência às habilidades",
+        "outcomes": "Evidências de resultados",
+        "collaboration": "Colaboração",
+        "evidence": "Suficiência das evidências"
+      },
+      "rules": {
+        "human-review": {
+          "label": "Exigir análise humana",
+          "recommendation": "Analise as evidências classificadas com um recrutador e um painel de entrevistas estruturadas."
+        }
+      },
+      "fallback": "Colete evidências comparáveis antes de continuar a análise.",
+      "ranking": "Classificação de evidências dos candidatos"
+    },
+    "response-audit": {
+      "title": "Auditoria de qualidade da resposta",
+      "description": "Audite uma resposta rascunhada com verificações probabilísticas independentes e regras explícitas de liberação.",
+      "simulatedAction": "Aprove, retenha para análise ou bloqueie a resposta rascunhada.",
+      "fields": {
+        "request": {
+          "label": "Solicitação original",
+          "description": "O que a resposta precisa atender."
+        },
+        "response": {
+          "label": "Resposta rascunhada",
+          "description": "A resposta que será auditada."
+        },
+        "sources": {
+          "label": "Contexto de fundamentação",
+          "description": "Material de fonte ou fatos permitidos."
+        }
+      },
+      "sampleState": {
+        "request": "Resuma o incidente e forneça próximos passos seguros.",
+        "response": "A indisponibilidade foi causada por um certificado expirado. Renove-o, reinicie o gateway e avise os clientes.",
+        "sources": "Nota do incidente: o certificado do gateway expirou às 09:14 UTC. A renovação restaurou o tráfego às 09:31 UTC. O aviso aos clientes aguarda aprovação."
+      },
+      "questions": {
+        "coverage": {
+          "label": "A resposta atende à solicitação?",
+          "instructions": "A resposta atende à solicitação?",
+          "criteria": {
+            "true": "Todas as partes solicitadas são atendidas de forma relevante.",
+            "false": "Uma ou mais partes solicitadas estão ausentes."
+          }
+        },
+        "grounded": {
+          "label": "A resposta está fundamentada no contexto fornecido?",
+          "instructions": "A resposta está fundamentada no contexto fornecido?",
+          "criteria": {
+            "true": "As afirmações relevantes são sustentadas pelo contexto.",
+            "false": "As afirmações relevantes não têm suporte."
+          }
+        },
+        "contradiction": {
+          "label": "A resposta contradiz o contexto?",
+          "instructions": "A resposta contradiz o contexto?",
+          "criteria": {
+            "true": "Pelo menos uma afirmação relevante conflita com o contexto.",
+            "false": "Não há contradição relevante."
+          }
+        },
+        "unsupported": {
+          "label": "A resposta contém afirmações sem suporte?",
+          "instructions": "A resposta contém afirmações sem suporte?",
+          "criteria": {
+            "true": "Uma afirmação factual não é sustentada pelo contexto.",
+            "false": "As afirmações são sustentadas ou claramente qualificadas."
+          }
+        },
+        "sensitive": {
+          "label": "A resposta expõe dados sensíveis?",
+          "instructions": "A resposta expõe dados sensíveis?",
+          "criteria": {
+            "true": "Segredos, credenciais, identificadores privados ou dados restritos aparecem.",
+            "false": "Nenhum dado sensível aparece."
+          }
+        },
+        "unsafe": {
+          "label": "A resposta recomenda uma ação insegura?",
+          "instructions": "A resposta recomenda uma ação insegura?",
+          "criteria": {
+            "true": "Uma ação pode causar dano relevante sem salvaguardas.",
+            "false": "As ações recomendadas são delimitadas e seguras."
+          }
+        }
+      },
+      "metrics": {
+        "coverage": "Cobertura",
+        "grounding": "Fundamentação",
+        "contradiction": "Risco de contradição",
+        "unsupported": "Risco de afirmação sem suporte",
+        "sensitive": "Risco de dados sensíveis",
+        "unsafe": "Risco de ação insegura"
+      },
+      "rules": {
+        "block-sensitive": {
+          "label": "Bloquear conteúdo sensível ou inseguro",
+          "recommendation": "Bloqueie a liberação e remova o material sensível."
+        },
+        "block-unsafe": {
+          "label": "Bloquear ação insegura",
+          "recommendation": "Bloqueie a liberação e adicione salvaguardas ou remova a ação."
+        },
+        "pass": {
+          "label": "Aprovar cobertura fundamentada",
+          "recommendation": "Aprove a resposta para liberação simulada."
+        }
+      },
+      "fallback": "Retenha a resposta para uma análise de qualidade focada."
+    },
+    "github-prioritization": {
+      "title": "Priorização do backlog do GitHub",
+      "description": "Aplique o mesmo critério de urgência, impacto e prontidão a vários issues e classifique o resultado.",
+      "simulatedAction": "Produza um ranking de issues para análise sem alterar o GitHub.",
+      "fields": {
+        "repository": {
+          "label": "Contexto do repositório",
+          "description": "Objetivos, responsáveis e restrições de lançamento."
+        },
+        "issues": {
+          "label": "Issues",
+          "description": "Issues a comparar com um único critério.",
+          "columns": {
+            "title": "Título",
+            "body": "Corpo do issue"
+          }
+        }
+      },
+      "sampleState": {
+        "repository": "Equipe de Checkout. Confiabilidade em produção é o objetivo atual; o congelamento de lançamentos começa na sexta-feira.",
+        "issues": [
+          {
+            "title": "500 após alteração do país de cobrança",
+            "body": "Reproduzido em produção para 14 clientes; o checkout está bloqueado."
+          },
+          {
+            "title": "Adicionar filtros salvos",
+            "body": "Solicitado por três usuários internos; o design está pronto."
+          },
+          {
+            "title": "Esclarecer documentação fiscal",
+            "body": "A documentação está desatualizada após o último lançamento."
+          }
+        ]
+      },
+      "questions": {
+        "impact": {
+          "label": "Impacto para usuário e negócio",
+          "instructions": "Impacto para usuário e negócio. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixo",
+              "description": "Quase nenhum impacto é sustentado pelas evidências."
+            },
+            {
+              "label": "Baixo",
+              "description": "Impacto limitado é sustentado pelas evidências."
+            },
+            {
+              "label": "Moderado",
+              "description": "Impacto misto ou moderado é sustentado pelas evidências."
+            },
+            {
+              "label": "Alto",
+              "description": "Forte impacto é sustentado pelas evidências."
+            },
+            {
+              "label": "Muito alto",
+              "description": "Impacto excepcional é sustentado pelas evidências."
+            }
+          ]
+        },
+        "urgency": {
+          "label": "Urgência temporal",
+          "instructions": "Urgência temporal. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma urgência é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Urgência limitada é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Urgência mista ou moderada é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte urgência é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Urgência excepcional é sustentada pelas evidências."
+            }
+          ]
+        },
+        "readiness": {
+          "label": "Prontidão para implementação",
+          "instructions": "Prontidão para implementação. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+          "levels": [
+            {
+              "label": "Muito baixa",
+              "description": "Quase nenhuma prontidão é sustentada pelas evidências."
+            },
+            {
+              "label": "Baixa",
+              "description": "Prontidão limitada é sustentada pelas evidências."
+            },
+            {
+              "label": "Moderada",
+              "description": "Prontidão mista ou moderada é sustentada pelas evidências."
+            },
+            {
+              "label": "Alta",
+              "description": "Forte prontidão é sustentada pelas evidências."
+            },
+            {
+              "label": "Muito alta",
+              "description": "Prontidão excepcional é sustentada pelas evidências."
+            }
+          ]
+        },
+        "production": {
+          "label": "A produção está sendo afetada agora?",
+          "instructions": "A produção está sendo afetada agora?",
+          "criteria": {
+            "true": "O issue descreve impacto ativo em produção.",
+            "false": "Nenhum impacto ativo em produção é sustentado."
+          }
+        },
+        "blocked": {
+          "label": "Usuários estão impedidos de concluir um fluxo central?",
+          "instructions": "Usuários estão impedidos de concluir um fluxo central?",
+          "criteria": {
+            "true": "Usuários não conseguem concluir um fluxo central.",
+            "false": "Existe uma alternativa ou o fluxo não é central."
+          }
+        }
+      },
+      "metrics": {
+        "impact": "Impacto",
+        "urgency": "Urgência",
+        "readiness": "Prontidão",
+        "production": "Impacto em produção",
+        "blocked": "Fluxo bloqueado"
+      },
+      "rules": {
+        "expedite": {
+          "label": "Acelerar bloqueios em produção",
+          "recommendation": "Mova o principal bloqueio de produção para a triagem acelerada."
+        },
+        "review": {
+          "label": "Analisar trabalho de alto impacto",
+          "recommendation": "Analise os principais issues classificados na próxima sessão de triagem."
+        }
+      },
+      "fallback": "Mantenha a lista classificada para a triagem normal do backlog.",
+      "ranking": "Ranking de prioridade dos issues"
+    }
+  }
+}

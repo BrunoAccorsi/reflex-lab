@@ -30,6 +30,12 @@
   --letter-spacing-pill: 0.12em;
   --letter-spacing-display: -0.045em;
   --leading-display: 1.08;
+  --ease-smooth: cubic-bezier(.22, 1, .36, 1);
+  --max-width-menu-label: 12rem;
+  --transition-property-workbench-grid: grid-template-columns;
+  --transition-property-menu-label: max-width, opacity, transform;
+  --transition-property-menu: opacity, transform, visibility;
+  --transition-property-evidence: max-height, opacity, transform, padding;
   --max-width-workbench: 1800px;
   --max-width-studio: 1600px;
   --min-height-editor: 650px;

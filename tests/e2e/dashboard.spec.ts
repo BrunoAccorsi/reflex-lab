@@ -37,6 +37,16 @@ test("keeps the lab selector and workspaces usable across screen sizes", async (
   }
 });
 
+test("switches the workbench between English and Brazilian Portuguese", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Support orchestration" })).toBeVisible();
+  await page.getByRole("button", { name: "Português (Brasil)" }).click();
+  await expect(page.getByRole("heading", { name: "Orquestração de suporte" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Avaliar laboratório" })).toBeVisible();
+  await page.getByRole("button", { name: "English" }).click();
+  await expect(page.getByRole("heading", { name: "Support orchestration" })).toBeVisible();
+});
+
 test("evaluates all six capability labs and exposes typed answer evidence", async ({ page }) => {
   await page.goto("/");
   for (const lab of labs) {
@@ -80,7 +90,7 @@ test("compares against the previous compatible run", async ({ page }) => {
 test("Studio keeps visual and JSON editors synchronized and saves a browser preset", async ({ page }) => {
   await page.goto("/studio");
   await page.getByLabel("Built-in template").selectOption("blank");
-  await page.getByLabel("Title").fill("Escalation verifier");
+  await page.getByRole("textbox", { name: "Title", exact: true }).fill("Escalation verifier");
   await page.getByRole("button", { name: "JSON" }).click();
   await expect(page.getByLabel("Experiment definition JSON")).toContainText('"title": "Escalation verifier"');
   await page.getByRole("button", { name: /^Save/ }).click();
