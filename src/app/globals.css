@@ -30,7 +30,7 @@
   --letter-spacing-pill: 0.12em;
   --letter-spacing-display: -0.045em;
   --leading-display: 1.08;
-  --ease-smooth: cubic-bezier(.22, 1, .36, 1);
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
   --max-width-menu-label: 12rem;
   --transition-property-workbench-grid: grid-template-columns;
   --transition-property-menu-label: max-width, opacity, transform;
@@ -54,7 +54,9 @@
   color-scheme: light;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -63,13 +65,24 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-button, input, textarea { font: inherit; }
+button,
+input,
+textarea {
+  font: inherit;
+}
 
-::selection { background: #f3bcab; }
+::selection {
+  background: #f3bcab;
+}
 
 .grain {
-  background-image: radial-gradient(rgba(23, 32, 42, 0.08) 0.6px, transparent 0.6px);
+  background-image: radial-gradient(
+    rgba(23, 32, 42, 0.08) 0.6px,
+    transparent 0.6px
+  );
   background-size: 8px 8px;
 }
 
-.progress-fill { width: var(--progress-width); }
+.progress-fill {
+  width: var(--progress-width);
+}

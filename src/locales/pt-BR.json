@@ -148,7 +148,14 @@
     "previous": "anterior",
     "switchLanguage": "Alterar idioma",
     "englishFlag": "🇺🇸",
-    "portugueseFlag": "🇧🇷"
+    "portugueseFlag": "🇧🇷",
+    "newField": "Novo campo",
+    "low": "Baixo",
+    "high": "Alto",
+    "copySuffix": "cópia",
+    "editingPreset": "Editando preset",
+    "collapseLabs": "Recolher laboratórios de capacidade",
+    "expandLabs": "Expandir laboratórios de capacidade"
   },
   "definitions": {
     "support-orchestration": {
@@ -934,6 +941,58 @@
       },
       "fallback": "Mantenha a lista classificada para a triagem normal do backlog.",
       "ranking": "Ranking de prioridade dos issues"
+    },
+    "untitled-experiment": {
+      "title": "Experimento sem título",
+      "description": "Um experimento de decisão Jev personalizado.",
+      "simulatedAction": "Revise o resultado determinístico da política.",
+      "fields": {
+        "context": {
+          "label": "Contexto",
+          "description": "Evidências fornecidas ao sistema de decisão."
+        }
+      },
+      "sampleState": {
+        "context": "Descreva as evidências a serem avaliadas."
+      },
+      "questions": {
+        "supported": {
+          "label": "A proposição é sustentada?",
+          "instructions": "A proposição é sustentada?",
+          "criteria": {
+            "true": "As evidências fornecidas sustentam a proposição.",
+            "false": "As evidências fornecidas não sustentam a proposição."
+          }
+        }
+      },
+      "metrics": {
+        "support": "Suporte"
+      },
+      "rules": {
+        "act": {
+          "label": "Agir com suporte suficiente",
+          "recommendation": "Prossiga com a ação simulada configurada."
+        }
+      },
+      "fallback": "Revise as evidências antes de agir."
     }
+  },
+  "values": {
+    "billing": "cobrança",
+    "technical": "técnico",
+    "account": "conta",
+    "general": "geral",
+    "refund": "reembolso",
+    "troubleshoot": "solucionar",
+    "explain": "explicar",
+    "change": "alteração",
+    "calm": "calmo",
+    "concerned": "preocupado",
+    "frustrated": "frustrado",
+    "hostile": "hostil",
+    "proceed": "prosseguir",
+    "confirm": "confirmar",
+    "inspect": "inspecionar",
+    "stop": "parar"
   }
 }

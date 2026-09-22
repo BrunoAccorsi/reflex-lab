@@ -2,32 +2,70 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Braces, ChartNetwork, Check, Copy, Download, FilePlus2, Plus, RotateCcw, Save, Trash2, Upload, Wrench } from "lucide-react";
-import { blankExperiment, experimentDefinitionSchema, experiments, type ExperimentDefinitionV1, type QuestionDefinition } from "@/lib/experiments";
-import { localizeDefinition, localizedBlankExperiment, localizedExperiments } from "@/lib/i18n";
-import { loadPresets, makePreset, savePresets, type StoredPreset } from "@/lib/presets";
+import { ZodError } from "zod";
+import {
+  ArrowLeft,
+  ChartNetwork,
+  Check,
+  Copy,
+  Download,
+  FilePlus2,
+  RotateCcw,
+  Save,
+  Trash2,
+  Upload,
+  Wrench,
+} from "lucide-react";
+import {
+  blankExperiment,
+  experimentDefinitionSchema,
+  experiments,
+  type ExperimentDefinitionV1,
+} from "@/lib/experiments";
+import {
+  localizeDefinition,
+  localizedBlankExperiment,
+  localizedExperiments,
+} from "@/lib/i18n";
+import {
+  loadPresets,
+  makePreset,
+  savePresets,
+  type StoredPreset,
+} from "@/lib/presets";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LanguageToggle, useLanguage } from "@/components/language-toggle";
+import {
+  StudioEditorPanels,
+  type EditorTab,
+} from "@/components/studio-editor-panels";
 
-type EditorTab = "Definition" | "Questions" | "Policy" | "JSON";
 const editorTabs: EditorTab[] = ["Definition", "Questions", "Policy", "JSON"];
-function clone<T>(value: T): T { return JSON.parse(JSON.stringify(value)) as T; }
-function uid(prefix: string) { return `${prefix}-${Date.now().toString(36)}`; }
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
 
 function validationMessages(error: unknown) {
-  if (error && typeof error === "object" && "issues" in error && Array.isArray((error as { issues: unknown[] }).issues)) {
-    return (error as { issues: Array<{ path?: Array<string | number>; message?: string }> }).issues.map((issue) => `${issue.path?.length ? issue.path.join(".") : "$"}: ${issue.message ?? "Invalid value"}`);
-  }
+  if (error instanceof ZodError)
+    return error.issues.map(
+      (issue) => `${issue.path.join(".") || "$"}: ${issue.message}`,
+    );
   return [error instanceof Error ? error.message : "Invalid JSON"];
 }
 
 export function StudioWorkspace() {
   const { language, t } = useLanguage();
-  const [definition, setDefinition] = useState<ExperimentDefinitionV1>(() => clone(experiments[0]));
-  const [baseline, setBaseline] = useState<ExperimentDefinitionV1>(() => clone(experiments[0]));
-  const [jsonText, setJsonText] = useState(() => JSON.stringify(experiments[0], null, 2));
+  const [definition, setDefinition] = useState<ExperimentDefinitionV1>(() =>
+    clone(experiments[0]),
+  );
+  const [baseline, setBaseline] = useState<ExperimentDefinitionV1>(() =>
+    clone(experiments[0]),
+  );
+  const [jsonText, setJsonText] = useState(() =>
+    JSON.stringify(experiments[0], null, 2),
+  );
   const [errors, setErrors] = useState<string[]>([]);
   const [tab, setTab] = useState<EditorTab>("Definition");
   const [presets, setPresets] = useState<StoredPreset[]>([]);
@@ -39,82 +77,335 @@ export function StudioWorkspace() {
     const builtin = experiments.find((item) => item.id === definition.id);
     if (builtin) {
       const next = clone(localizeDefinition(builtin, language));
-      setDefinition(next); setBaseline(next); setJsonText(JSON.stringify(next, null, 2));
+      setDefinition(next);
+      setBaseline(next);
+      setJsonText(JSON.stringify(next, null, 2));
     } else if (definition.id === blankExperiment.id) {
       const next = clone(localizedBlankExperiment(language));
-      setDefinition(next); setBaseline(next); setJsonText(JSON.stringify(next, null, 2));
+      setDefinition(next);
+      setBaseline(next);
+      setJsonText(JSON.stringify(next, null, 2));
     }
   }, [definition.id, language]);
 
-  const validation = useMemo(() => experimentDefinitionSchema.safeParse(definition), [definition]);
-  function update(next: ExperimentDefinitionV1) { setDefinition(next); setJsonText(JSON.stringify(next, null, 2)); setErrors([]); }
+  const validation = useMemo(
+    () => experimentDefinitionSchema.safeParse(definition),
+    [definition],
+  );
+  const templates = useMemo(() => localizedExperiments(language), [language]);
+  function update(next: ExperimentDefinitionV1) {
+    setDefinition(next);
+    setJsonText(JSON.stringify(next, null, 2));
+    setErrors([]);
+  }
+  function openDefinition(
+    next: ExperimentDefinitionV1,
+    presetId: string | null,
+  ) {
+    const copy = clone(next);
+    setBaseline(copy);
+    update(copy);
+    setActivePresetId(presetId);
+  }
   function chooseTemplate(id: string) {
-    const localized = localizedExperiments(language);
-    const next = id === "blank" ? clone(localizedBlankExperiment(language)) : clone(localized.find((item) => item.id === id) ?? localized[0]);
-    setBaseline(next); update(next); setActivePresetId(null); setNotice(t("templateLoaded"));
+    const next =
+      id === "blank"
+        ? clone(localizedBlankExperiment(language))
+        : clone(templates.find((item) => item.id === id) ?? templates[0]);
+    openDefinition(next, null);
+    setNotice(t("templateLoaded"));
   }
   function choosePreset(id: string) {
-    const preset = presets.find((item) => item.id === id); if (!preset) return;
-    const next = clone(preset.definition); setBaseline(next); update(next); setActivePresetId(id); setNotice(`${language === "pt-BR" ? "Editando preset" : "Editing preset"}: ${preset.name}`);
+    const preset = presets.find((item) => item.id === id);
+    if (!preset) return;
+    openDefinition(preset.definition, id);
+    setNotice(`${t("editingPreset")}: ${preset.name}`);
   }
-  function persist(nextPresets: StoredPreset[]) { setPresets(nextPresets); savePresets(nextPresets); }
+  function persist(nextPresets: StoredPreset[]) {
+    setPresets(nextPresets);
+    savePresets(nextPresets);
+  }
   function save() {
     const parsed = experimentDefinitionSchema.safeParse(definition);
-    if (!parsed.success) { setErrors(validationMessages(parsed.error)); setTab("JSON"); return; }
+    if (!parsed.success) {
+      setErrors(validationMessages(parsed.error));
+      setTab("JSON");
+      return;
+    }
     if (activePresetId) {
-      const next = presets.map((preset) => preset.id === activePresetId ? { ...preset, name: parsed.data.title, definition: parsed.data, updatedAt: new Date().toISOString() } : preset);
-      persist(next); setBaseline(clone(parsed.data)); setNotice(t("presetSaved"));
+      const next = presets.map((preset) =>
+        preset.id === activePresetId
+          ? {
+              ...preset,
+              name: parsed.data.title,
+              definition: parsed.data,
+              updatedAt: new Date().toISOString(),
+            }
+          : preset,
+      );
+      persist(next);
+      setBaseline(clone(parsed.data));
+      setNotice(t("presetSaved"));
     } else {
-      const preset = makePreset(parsed.data); persist([...presets, preset]); setActivePresetId(preset.id); setDefinition(clone(preset.definition)); setJsonText(JSON.stringify(preset.definition, null, 2)); setBaseline(clone(preset.definition)); setNotice(t("presetCreated"));
+      const preset = makePreset(parsed.data);
+      persist([...presets, preset]);
+      openDefinition(preset.definition, preset.id);
+      setNotice(t("presetCreated"));
     }
   }
   function duplicate() {
-    const copy = makePreset({ ...definition, title: `${definition.title} copy` }, `${definition.title} copy`);
-    persist([...presets, copy]); setActivePresetId(copy.id); setBaseline(clone(copy.definition)); update(clone(copy.definition)); setNotice(t("presetDuplicated"));
+    const name = `${definition.title} ${t("copySuffix")}`;
+    const copy = makePreset({ ...definition, title: name }, name);
+    persist([...presets, copy]);
+    openDefinition(copy.definition, copy.id);
+    setNotice(t("presetDuplicated"));
   }
   function removePreset() {
     if (!activePresetId) return;
-    persist(presets.filter((preset) => preset.id !== activePresetId)); chooseTemplate(experiments[0].id); setNotice(t("presetRemoved"));
+    persist(presets.filter((preset) => preset.id !== activePresetId));
+    chooseTemplate(experiments[0].id);
+    setNotice(t("presetRemoved"));
   }
   function exportDefinition() {
-    const blob = new Blob([JSON.stringify(definition, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `${definition.id}.json`; anchor.click(); URL.revokeObjectURL(url);
+    const blob = new Blob([JSON.stringify(definition, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${definition.id}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   }
   async function importDefinition(file: File) {
     try {
-      const parsed = experimentDefinitionSchema.parse(JSON.parse(await file.text()) as unknown);
-      const preset = makePreset(parsed); persist([...presets, preset]); setActivePresetId(preset.id); setBaseline(clone(preset.definition)); update(clone(preset.definition)); setNotice(t("presetImported"));
-    } catch (error) { setErrors(validationMessages(error)); setTab("JSON"); }
+      const parsed = experimentDefinitionSchema.parse(
+        JSON.parse(await file.text()) as unknown,
+      );
+      const preset = makePreset(parsed);
+      persist([...presets, preset]);
+      openDefinition(preset.definition, preset.id);
+      setNotice(t("presetImported"));
+    } catch (error) {
+      setErrors(validationMessages(error));
+      setTab("JSON");
+    }
   }
-  function editQuestion(index: number, next: QuestionDefinition) { update({ ...definition, questions: definition.questions.map((question, itemIndex) => itemIndex === index ? next : question) }); }
-  function addQuestion(kind: QuestionDefinition["kind"]) {
-    const id = uid(kind);
-    const target = { type: "static" as const };
-    const next: QuestionDefinition = kind === "choice" ? { id, kind, target, label: t("newChoice"), instructions: t("chooseBest"), criteria: { optionA: t("evidenceA"), optionB: t("evidenceB") } }
-      : kind === "score" ? { id, kind, target, label: t("newScore"), instructions: t("closestLevel"), levels: [{ label: language === "pt-BR" ? "Baixo" : "Low", description: t("littleEvidence") }, { label: language === "pt-BR" ? "Alto" : "High", description: t("strongEvidence") }] }
-      : { id, kind, target, label: t("newYesNo"), instructions: t("determineSupported"), criteria: { true: t("evidenceSupportsYes"), false: t("evidenceSupportsNo") } };
-    update({ ...definition, questions: [...definition.questions, next] });
+  function updateJson(text: string) {
+    setJsonText(text);
+    try {
+      const parsed = experimentDefinitionSchema.parse(
+        JSON.parse(text) as unknown,
+      );
+      setDefinition(parsed);
+      setErrors([]);
+    } catch (error) {
+      setErrors(validationMessages(error));
+    }
   }
 
-  return <main className="min-h-screen"><div className="mx-auto max-w-studio px-5 py-6 sm:px-8 lg:px-12">
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 pb-5"><div className="flex items-center gap-3"><div className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white"><ChartNetwork size={19} /></div><div><p className="text-lg font-black">{t("studioTitle")}</p><p className="text-xs font-semibold uppercase tracking-label text-ink/45">{t("studioSubtitle")}</p></div></div><div className="flex items-center gap-3"><LanguageToggle /><Link href="/" className="inline-flex items-center text-sm font-bold"><ArrowLeft size={16} className="mr-2" /> {t("backToLabs")}</Link></div></header>
-    <div className="grid gap-7 py-8 lg:grid-cols-studio">
-      <aside className="space-y-5"><Card className="p-5"><p className="text-xs font-black uppercase tracking-wider text-ink/45">{t("startFrom")}</p><select aria-label={t("builtInTemplate")} value="" onChange={(event) => chooseTemplate(event.target.value)} className="mt-3 w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm font-bold"><option value="" disabled>{t("chooseTemplate")}</option><option value="blank">{t("blankExperiment")}</option>{localizedExperiments(language).map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select><Button onClick={() => chooseTemplate("blank")} className="mt-3 w-full border border-ink/10"><FilePlus2 size={15} className="mr-2" /> {t("newBlank")}</Button></Card>
-        <Card className="p-5"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-wider text-ink/45">{t("browserPresets")}</p><span className="rounded-full bg-paper px-2 py-1 text-xs font-black">{presets.length}</span></div><div className="mt-3 space-y-2">{presets.length === 0 ? <p className="text-sm leading-6 text-ink/45">{t("savedPresets")}</p> : presets.map((preset) => <button key={preset.id} onClick={() => choosePreset(preset.id)} className={cn("w-full rounded-xl p-3 text-left text-sm font-bold", activePresetId === preset.id ? "bg-ink text-white" : "bg-paper hover:bg-ink/10")}>{preset.name}</button>)}</div></Card>
-        <Card className="p-5"><p className="text-xs leading-5 text-ink/50">{notice ?? t("templateLoaded")}</p><div className="mt-4 grid grid-cols-2 gap-2"><Button onClick={save} className="bg-ink text-white"><Save size={14} className="mr-2" /> {t("save")}</Button><Button onClick={duplicate} className="border border-ink/10"><Copy size={14} className="mr-2" /> {t("duplicate")}</Button><Button onClick={() => update(clone(baseline))} className="border border-ink/10"><RotateCcw size={14} className="mr-2" /> {t("reset")}</Button><Button onClick={exportDefinition} className="border border-ink/10"><Download size={14} className="mr-2" /> {t("export")}</Button><Button onClick={() => importRef.current?.click()} className="border border-ink/10"><Upload size={14} className="mr-2" /> {t("import")}</Button><input ref={importRef} type="file" accept="application/json" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void importDefinition(file); }} />{activePresetId && <Button onClick={removePreset} className="border border-coral/30 text-coral"><Trash2 size={14} className="mr-2" /> {t("delete")}</Button>}</div></Card>
-      </aside>
-      <section className="min-w-0"><div className="mb-6 flex flex-wrap items-end justify-between gap-4"><div><div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-ink/45"><Wrench size={14} /> {t("experimentDefinition")}</div><h1 className="mt-2 text-4xl font-black tracking-tight">{definition.title}</h1><p className="mt-2 max-w-3xl text-ink/55">{t("visualJson")}</p></div><div className={cn("rounded-full px-3 py-2 text-xs font-black", validation.success ? "bg-moss/15 text-moss" : "bg-coral/15 text-coral")}>{validation.success ? <><Check size={14} className="mr-1 inline" /> {t("validSchema")}</> : `${validation.error.issues.length} ${t("validationErrors")}`}</div></div>
-        <Card className="overflow-hidden"><div className="flex gap-1 overflow-x-auto border-b border-ink/10 px-4 pt-3">{editorTabs.map((item) => <button key={item} onClick={() => setTab(item)} className={cn("border-b-2 px-4 py-3 text-sm font-bold", tab === item ? "border-ink" : "border-transparent text-ink/40")}>{item === "Definition" ? t("definition") : item === "Questions" ? t("questions") : item === "Policy" ? t("policy") : t("json")}</button>)}</div><div className="p-5 sm:p-7">
-          {tab === "Definition" && <div className="space-y-6"><div className="grid gap-4 sm:grid-cols-2"><label className="text-sm font-bold">{t("title")}<input value={definition.title} onChange={(event) => update({ ...definition, title: event.target.value })} className="mt-2 w-full rounded-xl border border-ink/10 bg-paper p-3 font-normal" /></label><label className="text-sm font-bold">{t("identifier")}<input value={definition.id} onChange={(event) => update({ ...definition, id: event.target.value })} className="mt-2 w-full rounded-xl border border-ink/10 bg-paper p-3 font-mono text-xs font-normal" /></label><label className="text-sm font-bold sm:col-span-2">{t("description")}<textarea value={definition.description} onChange={(event) => update({ ...definition, description: event.target.value })} className="mt-2 min-h-24 w-full rounded-xl border border-ink/10 bg-paper p-3 font-normal" /></label></div><div><div className="mb-3 flex items-center justify-between"><h2 className="font-black">{t("stateFields")}</h2><Button onClick={() => update({ ...definition, fields: [...definition.fields, { id: uid("field"), type: "multiline", label: language === "pt-BR" ? "Novo campo" : "New field", description: "", required: true }] })} className="border border-ink/10"><Plus size={14} className="mr-2" /> {t("addField")}</Button></div><div className="space-y-3">{definition.fields.map((field, index) => <div key={`${field.id}-${index}`} className="grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-record"><input aria-label={`${t("fieldType")} ${index + 1} ${t("identifier")}`} value={field.id} onChange={(event) => update({ ...definition, fields: definition.fields.map((item, itemIndex) => itemIndex === index ? { ...item, id: event.target.value } : item) })} className="rounded-lg border border-ink/10 bg-white p-2 font-mono text-xs" /><input aria-label={`${t("fieldType")} ${index + 1} ${t("title")}`} value={field.label} onChange={(event) => update({ ...definition, fields: definition.fields.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item) })} className="rounded-lg border border-ink/10 bg-white p-2 text-sm" /><select aria-label={`${t("fieldType")} ${index + 1}`} value={field.type} onChange={(event) => { const type = event.target.value; const base = { id: field.id, label: field.label, description: field.description, required: field.required }; const next = type === "records" ? { ...base, type: "records" as const, minItems: 1, maxItems: 6, recordLabelField: "name", columns: [{ id: "name", label: t("columnName"), multiline: false }] } : { ...base, type: type as "text" | "multiline" | "json" }; update({ ...definition, fields: definition.fields.map((item, itemIndex) => itemIndex === index ? next : item) }); }} className="rounded-lg border border-ink/10 bg-white p-2 text-sm"><option value="text">{t("text")}</option><option value="multiline">{t("multiline")}</option><option value="json">JSON</option><option value="records">{t("records")}</option></select><button aria-label={`${t("removeField")} ${index + 1}`} onClick={() => update({ ...definition, fields: definition.fields.filter((_, itemIndex) => itemIndex !== index) })}><Trash2 size={16} /></button></div>)}</div></div></div>}
-          {tab === "Questions" && <div><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-black">{t("atomicQuestions")}</h2><p className="mt-1 text-sm text-ink/45">{t("staticQuestions")}</p></div><div className="flex gap-2">{(["choice", "score", "noul"] as const).map((kind) => <Button key={kind} onClick={() => addQuestion(kind)} className="border border-ink/10"><Plus size={13} className="mr-1" /> {kind === "choice" ? t("choice") : kind === "score" ? t("score") : t("noul")}</Button>)}</div></div><div className="space-y-4">{definition.questions.map((question, index) => <div key={`${question.id}-${index}`} className="rounded-2xl border border-ink/10 p-4"><div className="flex items-start justify-between gap-3"><div><span className="rounded-full bg-paper px-2 py-1 text-xs font-black uppercase">{question.kind === "choice" ? t("choice") : question.kind === "score" ? t("score") : t("noul")}</span><span className="ml-2 font-mono text-xs text-ink/40">{question.id}</span></div><button aria-label={`${t("removeQuestion")} ${question.label}`} onClick={() => update({ ...definition, questions: definition.questions.filter((_, itemIndex) => itemIndex !== index) })}><Trash2 size={16} /></button></div><div className="mt-4 grid gap-3 sm:grid-cols-2"><input aria-label={`${t("questions")} ${index + 1} ${t("title")}`} value={question.label} onChange={(event) => editQuestion(index, { ...question, label: event.target.value })} className="rounded-xl border border-ink/10 bg-paper p-3 text-sm font-bold" /><select aria-label={`${t("questions")} ${index + 1} ${t("action")}`} value={question.target.type === "static" ? "static" : question.target.fieldId} onChange={(event) => editQuestion(index, { ...question, target: event.target.value === "static" ? { type: "static" } : { type: "records", fieldId: event.target.value } })} className="rounded-xl border border-ink/10 bg-paper p-3 text-sm"><option value="static">{t("static")}</option>{definition.fields.filter((field) => field.type === "records").map((field) => <option key={field.id} value={field.id}>{t("repeat")}: {field.label}</option>)}</select><textarea aria-label={`${t("questions")} ${index + 1} ${t("instructions")}`} value={question.instructions} onChange={(event) => editQuestion(index, { ...question, instructions: event.target.value })} className="min-h-20 rounded-xl border border-ink/10 bg-paper p-3 text-sm sm:col-span-2" /></div>
-                {question.kind === "choice" && <div className="mt-3 space-y-2">{Object.entries(question.criteria).map(([option, criterion]) => <div key={option} className="grid gap-2 sm:grid-cols-question"><input value={option} readOnly className="rounded-lg border border-ink/10 bg-paper p-2 font-mono text-xs" /><input value={criterion} onChange={(event) => editQuestion(index, { ...question, criteria: { ...question.criteria, [option]: event.target.value } })} className="rounded-lg border border-ink/10 p-2 text-sm" /></div>)}</div>}
-                {question.kind === "score" && <div className="mt-3 space-y-2">{question.levels.map((level, levelIndex) => <div key={levelIndex} className="grid gap-2 sm:grid-cols-question"><input value={level.label} onChange={(event) => editQuestion(index, { ...question, levels: question.levels.map((item, itemIndex) => itemIndex === levelIndex ? { ...item, label: event.target.value } : item) })} className="rounded-lg border border-ink/10 bg-paper p-2 text-sm font-bold" /><input value={level.description} onChange={(event) => editQuestion(index, { ...question, levels: question.levels.map((item, itemIndex) => itemIndex === levelIndex ? { ...item, description: event.target.value } : item) })} className="rounded-lg border border-ink/10 p-2 text-sm" /></div>)}</div>}
-                {question.kind === "noul" && <div className="mt-3 grid gap-2 sm:grid-cols-2"><textarea aria-label={`${question.label} true criteria`} value={question.criteria.true} onChange={(event) => editQuestion(index, { ...question, criteria: { ...question.criteria, true: event.target.value } })} className="min-h-20 rounded-lg border border-moss/20 bg-moss/5 p-2 text-sm" /><textarea aria-label={`${question.label} false criteria`} value={question.criteria.false} onChange={(event) => editQuestion(index, { ...question, criteria: { ...question.criteria, false: event.target.value } })} className="min-h-20 rounded-lg border border-coral/20 bg-coral/5 p-2 text-sm" /></div>}
-              </div>)}</div></div>}
-          {tab === "Policy" && <div className="space-y-7"><div><h2 className="font-black">{t("weightedMetrics")}</h2><p className="mt-1 text-sm text-ink/45">{t("weightedMetricsHelp")}</p><div className="mt-4 space-y-3">{definition.policy.metrics.map((metric, index) => <div key={metric.id} className="grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-policy"><input value={metric.label} onChange={(event) => update({ ...definition, policy: { ...definition.policy, metrics: definition.policy.metrics.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item) } })} className="rounded-lg border border-ink/10 bg-white p-2 text-sm font-bold" /><select value={metric.source.questionId} onChange={(event) => update({ ...definition, policy: { ...definition.policy, metrics: definition.policy.metrics.map((item, itemIndex) => itemIndex === index ? { ...item, source: { ...item.source, questionId: event.target.value } } : item) } })} className="rounded-lg border border-ink/10 bg-white p-2 text-sm">{definition.questions.map((question) => <option key={question.id} value={question.id}>{question.label}</option>)}</select><input aria-label={`${metric.label} weight`} type="number" min="0" max="10" step="0.1" value={metric.weight} onChange={(event) => update({ ...definition, policy: { ...definition.policy, metrics: definition.policy.metrics.map((item, itemIndex) => itemIndex === index ? { ...item, weight: Number(event.target.value) } : item) } })} className="rounded-lg border border-ink/10 bg-white p-2 text-sm" /><button aria-label={`${t("removeMetric")} ${metric.label}`} onClick={() => update({ ...definition, policy: { ...definition.policy, metrics: definition.policy.metrics.filter((_, itemIndex) => itemIndex !== index) } })}><Trash2 size={16} /></button></div>)}</div></div><div><h2 className="font-black">{t("orderedOutcomeRules")}</h2><div className="mt-4 space-y-3">{definition.policy.rules.map((rule, index) => <div key={rule.id} className="rounded-xl border border-ink/10 p-4"><div className="grid gap-3 sm:grid-cols-rule"><input value={rule.label} onChange={(event) => update({ ...definition, policy: { ...definition.policy, rules: definition.policy.rules.map((item, itemIndex) => itemIndex === index ? { ...item, label: event.target.value } : item) } })} className="rounded-lg border border-ink/10 bg-paper p-2 font-bold" /><select value={rule.outcome} onChange={(event) => update({ ...definition, policy: { ...definition.policy, rules: definition.policy.rules.map((item, itemIndex) => itemIndex === index ? { ...item, outcome: event.target.value as "act" | "review" | "stop" } : item) } })} className="rounded-lg border border-ink/10 bg-paper p-2"><option value="act">{t("act")}</option><option value="review">{t("review")}</option><option value="stop">{t("stop")}</option></select></div><textarea value={rule.recommendation} onChange={(event) => update({ ...definition, policy: { ...definition.policy, rules: definition.policy.rules.map((item, itemIndex) => itemIndex === index ? { ...item, recommendation: event.target.value } : item) } })} className="mt-3 min-h-16 w-full rounded-lg border border-ink/10 bg-paper p-2 text-sm" />{rule.all.map((condition, conditionIndex) => <div key={conditionIndex} className="mt-2 flex items-center gap-3 rounded-lg bg-paper p-3 text-xs"><span className="flex-1 font-mono">{condition.type === "metric" ? condition.metricId : condition.questionId} · {condition.operator}</span>{condition.type === "metric" ? <input aria-label={`${rule.label} ${t("threshold")} ${conditionIndex + 1}`} type="number" min="0" max="1" step="0.05" value={condition.value} onChange={(event) => update({ ...definition, policy: { ...definition.policy, rules: definition.policy.rules.map((item, itemIndex) => itemIndex === index ? { ...item, all: item.all.map((entry, entryIndex) => entryIndex === conditionIndex && entry.type === "metric" ? { ...entry, value: Number(event.target.value) } : entry) } : item) } })} className="w-20 rounded border border-ink/10 bg-white p-1" /> : <span>{condition.value}</span>}</div>)}</div>)}</div></div></div>}
-          {tab === "JSON" && <div><div className="mb-3 flex items-center gap-2"><Braces size={17} /><h2 className="font-black">{t("fullDefinitionJson")}</h2></div><textarea aria-label={t("experimentDefinitionJson")} value={jsonText} onChange={(event) => { const text = event.target.value; setJsonText(text); try { const parsed = experimentDefinitionSchema.parse(JSON.parse(text) as unknown); setDefinition(parsed); setErrors([]); } catch (error) { setErrors(validationMessages(error)); } }} spellCheck={false} className="min-h-editor w-full rounded-2xl bg-code p-5 font-mono text-xs leading-5 text-white outline-none" />{errors.length > 0 && <div role="alert" className="mt-4 rounded-xl border border-coral/30 bg-coral/10 p-4"><p className="font-black text-coral">{t("definitionErrors")}</p><ul className="mt-2 space-y-1 font-mono text-xs text-danger-foreground">{errors.map((error, index) => <li key={index}>{error}</li>)}</ul></div>}</div>}
-        </div></Card>
-      </section>
-    </div>
-  </div></main>;
+  return (
+    <main className="min-h-screen">
+      <div className="mx-auto max-w-studio px-5 py-6 sm:px-8 lg:px-12">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-ink/10 pb-5">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white">
+              <ChartNetwork size={19} />
+            </div>
+            <div>
+              <p className="text-lg font-black">{t("studioTitle")}</p>
+              <p className="text-xs font-semibold uppercase tracking-label text-ink/45">
+                {t("studioSubtitle")}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
+            <Link
+              href="/"
+              className="inline-flex items-center text-sm font-bold"
+            >
+              <ArrowLeft size={16} className="mr-2" /> {t("backToLabs")}
+            </Link>
+          </div>
+        </header>
+        <div className="grid gap-7 py-8 lg:grid-cols-studio">
+          <aside className="space-y-5">
+            <Card className="p-5">
+              <p className="text-xs font-black uppercase tracking-wider text-ink/45">
+                {t("startFrom")}
+              </p>
+              <select
+                aria-label={t("builtInTemplate")}
+                value=""
+                onChange={(event) => chooseTemplate(event.target.value)}
+                className="mt-3 w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm font-bold"
+              >
+                <option value="" disabled>
+                  {t("chooseTemplate")}
+                </option>
+                <option value="blank">{t("blankExperiment")}</option>
+                {templates.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+              <Button
+                onClick={() => chooseTemplate("blank")}
+                className="mt-3 w-full border border-ink/10"
+              >
+                <FilePlus2 size={15} className="mr-2" /> {t("newBlank")}
+              </Button>
+            </Card>
+            <Card className="p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-black uppercase tracking-wider text-ink/45">
+                  {t("browserPresets")}
+                </p>
+                <span className="rounded-full bg-paper px-2 py-1 text-xs font-black">
+                  {presets.length}
+                </span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {presets.length === 0 ? (
+                  <p className="text-sm leading-6 text-ink/45">
+                    {t("savedPresets")}
+                  </p>
+                ) : (
+                  presets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => choosePreset(preset.id)}
+                      className={cn(
+                        "w-full rounded-xl p-3 text-left text-sm font-bold",
+                        activePresetId === preset.id
+                          ? "bg-ink text-white"
+                          : "bg-paper hover:bg-ink/10",
+                      )}
+                    >
+                      {preset.name}
+                    </button>
+                  ))
+                )}
+              </div>
+            </Card>
+            <Card className="p-5">
+              <p className="text-xs leading-5 text-ink/50">
+                {notice ?? t("templateLoaded")}
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button onClick={save} className="bg-ink text-white">
+                  <Save size={14} className="mr-2" /> {t("save")}
+                </Button>
+                <Button onClick={duplicate} className="border border-ink/10">
+                  <Copy size={14} className="mr-2" /> {t("duplicate")}
+                </Button>
+                <Button
+                  onClick={() => update(clone(baseline))}
+                  className="border border-ink/10"
+                >
+                  <RotateCcw size={14} className="mr-2" /> {t("reset")}
+                </Button>
+                <Button
+                  onClick={exportDefinition}
+                  className="border border-ink/10"
+                >
+                  <Download size={14} className="mr-2" /> {t("export")}
+                </Button>
+                <Button
+                  onClick={() => importRef.current?.click()}
+                  className="border border-ink/10"
+                >
+                  <Upload size={14} className="mr-2" /> {t("import")}
+                </Button>
+                <input
+                  ref={importRef}
+                  type="file"
+                  accept="application/json"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) void importDefinition(file);
+                  }}
+                />
+                {activePresetId && (
+                  <Button
+                    onClick={removePreset}
+                    className="border border-coral/30 text-coral"
+                  >
+                    <Trash2 size={14} className="mr-2" /> {t("delete")}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </aside>
+          <section className="min-w-0">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-ink/45">
+                  <Wrench size={14} /> {t("experimentDefinition")}
+                </div>
+                <h1 className="mt-2 text-4xl font-black tracking-tight">
+                  {definition.title}
+                </h1>
+                <p className="mt-2 max-w-3xl text-ink/55">{t("visualJson")}</p>
+              </div>
+              <div
+                className={cn(
+                  "rounded-full px-3 py-2 text-xs font-black",
+                  validation.success
+                    ? "bg-moss/15 text-moss"
+                    : "bg-coral/15 text-coral",
+                )}
+              >
+                {validation.success ? (
+                  <>
+                    <Check size={14} className="mr-1 inline" />{" "}
+                    {t("validSchema")}
+                  </>
+                ) : (
+                  `${validation.error.issues.length} ${t("validationErrors")}`
+                )}
+              </div>
+            </div>
+            <Card className="overflow-hidden">
+              <div className="flex gap-1 overflow-x-auto border-b border-ink/10 px-4 pt-3">
+                {editorTabs.map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => setTab(item)}
+                    className={cn(
+                      "border-b-2 px-4 py-3 text-sm font-bold",
+                      tab === item
+                        ? "border-ink"
+                        : "border-transparent text-ink/40",
+                    )}
+                  >
+                    {item === "Definition"
+                      ? t("definition")
+                      : item === "Questions"
+                        ? t("questions")
+                        : item === "Policy"
+                          ? t("policy")
+                          : t("json")}
+                  </button>
+                ))}
+              </div>
+              <div className="p-5 sm:p-7">
+                <StudioEditorPanels
+                  tab={tab}
+                  definition={definition}
+                  jsonText={jsonText}
+                  errors={errors}
+                  update={update}
+                  updateJson={updateJson}
+                />
+              </div>
+            </Card>
+          </section>
+        </div>
+      </div>
+    </main>
+  );
 }

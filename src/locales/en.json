@@ -147,5 +147,12 @@
   "previous": "previous",
   "switchLanguage": "Switch language",
   "englishFlag": "🇺🇸",
-  "portugueseFlag": "🇧🇷"
+  "portugueseFlag": "🇧🇷",
+  "newField": "New field",
+  "low": "Low",
+  "high": "High",
+  "copySuffix": "copy",
+  "editingPreset": "Editing preset",
+  "collapseLabs": "Collapse capability labs",
+  "expandLabs": "Expand capability labs"
 }

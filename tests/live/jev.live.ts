@@ -9,4 +9,15 @@ const definition = getExperiment("tool-safety");
 const provider = await createJevProvider();
 const result = await provider({ definition, state: definition.sampleState });
 
-console.log(JSON.stringify({ model: result.model, requestId: result.requestId, answerKinds: result.answers.map((answer) => answer.kind), usage: result.usage }, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      model: result.model,
+      requestId: result.requestId,
+      answerKinds: result.answers.map((answer) => answer.kind),
+      usage: result.usage,
+    },
+    null,
+    2,
+  ),
+);

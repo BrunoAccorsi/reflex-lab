@@ -15,11 +15,15 @@ export const useLanguageStore = create<LanguageStore>((set, get) => ({
   hydrated: false,
   setLanguage: (language) => {
     set({ language });
-    if (typeof window !== "undefined") window.localStorage.setItem(LANGUAGE_KEY, language);
+    if (typeof window !== "undefined")
+      window.localStorage.setItem(LANGUAGE_KEY, language);
   },
   hydrate: () => {
     if (get().hydrated) return;
-    const stored = typeof window !== "undefined" ? window.localStorage.getItem(LANGUAGE_KEY) : null;
+    const stored =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(LANGUAGE_KEY)
+        : null;
     set({ language: stored === "pt-BR" ? "pt-BR" : "en", hydrated: true });
   },
 }));
