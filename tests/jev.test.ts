@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getExperiment } from "@/lib/experiments";
 import { buildDecisionRequest, createJevProvider } from "@/server/jev";
+import { evaluationRouter } from "@/server/routers/evaluation";
 
 const definition = getExperiment("tool-safety");
 const input = { definition, state: definition.sampleState };
@@ -61,5 +62,30 @@ describe("OpenRouter Jev Decisions provider", () => {
     await expect(network(input)).rejects.toMatchObject({ code: "network" });
     delete process.env.OPENROUTER_API_KEY;
     await expect(createJevProvider(vi.fn())).rejects.toMatchObject({ code: "missing_credentials" });
+  });
+
+  it("recognizes an exhausted key budget without confusing it with rate limiting or authentication", async () => {
+    for (const [status, message] of [[402, "Payment required"], [403, "Insufficient credits"], [403, "This key is out of budget"], [429, "Credit limit exceeded"]] as const) {
+      const provider = await createJevProvider(vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message } }), { status })));
+      await expect(provider(input)).rejects.toMatchObject({ code: "budget_exhausted", status, message: "You're too late! All free tokens have already been consumed." });
+    }
+    const invalidKey = await createJevProvider(vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message: "Invalid API key" } }), { status: 403 })));
+    await expect(invalidKey(input)).rejects.toMatchObject({ code: "provider_error" });
+  });
+
+  it("passes the exhausted-budget message to the client as payment required", async () => {
+    const previousMockSetting = process.env.MOCK_JEV;
+    process.env.MOCK_JEV = "false";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { message: "Insufficient credits" } }), { status: 402 })));
+    try {
+      await expect(evaluationRouter.createCaller({}).evaluate(input)).rejects.toMatchObject({
+        code: "PAYMENT_REQUIRED",
+        message: "You're too late! All free tokens have already been consumed.",
+      });
+    } finally {
+      vi.unstubAllGlobals();
+      if (previousMockSetting === undefined) delete process.env.MOCK_JEV;
+      else process.env.MOCK_JEV = previousMockSetting;
+    }
   });
 });

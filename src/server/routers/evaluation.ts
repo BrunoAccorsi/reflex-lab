@@ -26,7 +26,7 @@ export const evaluationRouter = createTRPCRouter({
       };
     } catch (error) {
       if (error instanceof JevProviderError) {
-        throw new TRPCError({ code: error.code === "missing_credentials" ? "PRECONDITION_FAILED" : error.code === "rate_limited" ? "TOO_MANY_REQUESTS" : "BAD_GATEWAY", message: error.message });
+        throw new TRPCError({ code: error.code === "budget_exhausted" ? "PAYMENT_REQUIRED" : error.code === "missing_credentials" ? "PRECONDITION_FAILED" : error.code === "rate_limited" ? "TOO_MANY_REQUESTS" : "BAD_GATEWAY", message: error.message });
       }
       if (error instanceof Error) throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
       throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Evaluation failed." });

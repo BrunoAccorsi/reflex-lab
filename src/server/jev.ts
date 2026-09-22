@@ -14,7 +14,7 @@ export type JevProviderResult = {
 };
 
 export class JevProviderError extends Error {
-  constructor(message: string, public readonly code: "missing_credentials" | "rate_limited" | "network" | "malformed_response" | "provider_error", public readonly status?: number) {
+  constructor(message: string, public readonly code: "missing_credentials" | "budget_exhausted" | "rate_limited" | "network" | "malformed_response" | "provider_error", public readonly status?: number) {
     super(message);
     this.name = "JevProviderError";
   }
@@ -72,6 +72,12 @@ function extractProviderErrorMessage(payload: unknown): string | null {
   return typeof message === "string" ? message.slice(0, 500) : null;
 }
 
+function isBudgetExhausted(status: number, message: string | null): boolean {
+  if (status === 402) return true;
+  if (status === 401 || !message) return false;
+  return /(?:insufficient|not enough|out of|exhausted|depleted|no|zero)\s+(?:available\s+|remaining\s+)?(?:credits?|balance|budget|tokens?)(?:\s+remaining)?|(?:credits?|budget|spend(?:ing)?|quota)\s+(?:limit\s+)?(?:exceeded|exhausted|depleted|reached|used up)/i.test(message);
+}
+
 export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promise<(input: EvaluationInput) => Promise<JevProviderResult>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   const model = process.env.OPENROUTER_JEV_MODEL || "typesafe/jev-1.13";
@@ -97,6 +103,7 @@ export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promis
     if (!response.ok) {
       const providerMessage = extractProviderErrorMessage(raw);
       console.error("[Reflex Lab] OpenRouter request failed", { status: response.status, requestId: response.headers.get("x-request-id"), body: raw });
+      if (isBudgetExhausted(response.status, providerMessage)) throw new JevProviderError("You're too late! All free tokens have already been consumed.", "budget_exhausted", response.status);
       if (response.status === 401 || response.status === 403) throw new JevProviderError(providerMessage ? `OpenRouter rejected the API key: ${providerMessage}` : "OpenRouter rejected the API key.", "provider_error", response.status);
       if (response.status === 429) throw new JevProviderError(providerMessage ? `OpenRouter rate limit reached: ${providerMessage}` : "OpenRouter rate limit reached. Try again shortly.", "rate_limited", response.status);
       throw new JevProviderError(providerMessage ? `OpenRouter returned an error (${response.status}): ${providerMessage}` : `OpenRouter returned an error (${response.status}).`, "provider_error", response.status);
