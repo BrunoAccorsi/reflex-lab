@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 const labs = ["Support orchestration", "Tool-call safety gate", "Opportunity scorecard", "Candidate-role matching", "Response quality audit", "GitHub backlog prioritization"];
 
 test("keeps the lab selector and workspaces usable across screen sizes", async ({ page }) => {
-  for (const width of [390, 768, 1024, 1600]) {
+  for (const width of [390, 768, 1024, 1280, 1512, 1600]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await expect(page.getByRole("heading", { name: "Support orchestration" })).toBeVisible();
@@ -20,7 +20,19 @@ test("keeps the lab selector and workspaces usable across screen sizes", async (
       await expect(menu).toHaveAttribute("aria-expanded", "false");
       await expect(page.getByRole("heading", { name: "Tool-call safety gate" })).toBeVisible();
     } else {
+      const expand = page.getByRole("button", { name: "Expand capability labs" });
+      await expect(expand).toHaveAttribute("aria-expanded", "false");
+      await expect(page.getByRole("navigation", { name: "Compact decision experiments" })).toBeVisible();
+      if (width >= 1280) {
+        const form = await page.getByRole("heading", { name: "Experiment state" }).boundingBox();
+        const result = await page.getByRole("heading", { name: "Result workspace" }).boundingBox();
+        expect(result!.x).toBeGreaterThan(form!.x + 250);
+        expect(Math.abs(result!.y - form!.y)).toBeLessThan(40);
+      }
+      await expand.click();
       await expect(page.getByRole("navigation", { name: "Decision experiments" })).toBeVisible();
+      await page.getByRole("button", { name: "Collapse capability labs" }).click();
+      await expect(page.getByRole("navigation", { name: "Compact decision experiments" })).toBeVisible();
     }
   }
 });
@@ -56,7 +68,10 @@ test("compares against the previous compatible run", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Evaluate lab/ }).click();
   await expect(page.getByText(/Composite signal/)).toBeVisible();
+  const secondEvaluation = page.waitForResponse((response) => response.url().includes("evaluation.evaluate") && response.request().method() === "POST");
   await page.getByRole("button", { name: /Evaluate lab/ }).click();
+  await secondEvaluation;
+  await expect(page.getByText(/Composite signal/)).toBeVisible();
   await page.getByRole("tab", { name: "Compare" }).click();
   await expect(page.getByText("Primary topic")).toBeVisible();
   await expect(page.getByText("+0 pts").first()).toBeVisible();

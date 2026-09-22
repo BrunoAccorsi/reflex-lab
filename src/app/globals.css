@@ -1,19 +1,59 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #17202a;
+  --color-code: #111923;
+  --color-paper: #f6f7f4;
+  --color-cream: #fff8ec;
+  --color-grain: #e8e8df;
+  --color-moss: #73876b;
+  --color-moss-foreground: #46613e;
+  --color-coral: #e7775c;
+  --color-coral-foreground: #a54834;
+  --color-danger-foreground: #8f3c2b;
+  --color-success-foreground: #3f5c38;
+  --color-review-foreground: #6a5016;
+  --color-sky: #8cb8c9;
+  --color-sky-foreground: #356b7d;
+  --color-lavender: #aea4c8;
+  --color-lavender-foreground: #63547d;
+  --color-gold: #f5dda3;
+  --color-gold-foreground: #735714;
+  --radius-control: 0.75rem;
+  --radius-panel: 1rem;
+  --radius-card: 1.5rem;
+  --text-display: 3.4rem;
+  --letter-spacing-brand: 0.22em;
+  --letter-spacing-label: 0.2em;
+  --letter-spacing-meta: 0.16em;
+  --letter-spacing-kicker: 0.18em;
+  --letter-spacing-pill: 0.12em;
+  --letter-spacing-display: -0.045em;
+  --leading-display: 1.08;
+  --max-width-workbench: 1800px;
+  --max-width-studio: 1600px;
+  --min-height-editor: 650px;
+  --grid-template-columns-sidebar: 230px minmax(0, 1fr);
+  --grid-template-columns-sidebar-collapsed: 64px minmax(0, 1fr);
+  --grid-template-columns-equal: minmax(0, 1fr) minmax(0, 1fr);
+  --grid-template-columns-studio: 280px minmax(0, 1fr);
+  --grid-template-columns-record: 1fr 1fr 140px auto;
+  --grid-template-columns-question: 150px 1fr;
+  --grid-template-columns-policy: 1fr 180px 100px auto;
+  --grid-template-columns-rule: 1fr 130px;
+  --shadow-card: 0 14px 40px rgba(23, 32, 42, 0.08);
+}
 
 :root {
   color-scheme: light;
-  --ink: #17202a;
-  --paper: #f6f7f4;
 }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -25,3 +65,5 @@ button, input, textarea { font: inherit; }
   background-image: radial-gradient(rgba(23, 32, 42, 0.08) 0.6px, transparent 0.6px);
   background-size: 8px 8px;
 }
+
+.progress-fill { width: var(--progress-width); }

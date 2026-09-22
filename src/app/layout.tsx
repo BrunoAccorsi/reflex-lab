@@ -3,8 +3,12 @@ import "./globals.css";
 import { TRPCProvider } from "@/components/trpc-provider";
 
 export const metadata: Metadata = {
-  title: "Reflex Lab",
+  title: "Jev Lab",
   description: "Fast decisions. Clear confidence.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

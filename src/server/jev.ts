@@ -102,7 +102,7 @@ export async function createJevProvider(fetchImpl: typeof fetch = fetch): Promis
     const raw = await response.json().catch(() => null);
     if (!response.ok) {
       const providerMessage = extractProviderErrorMessage(raw);
-      console.error("[Reflex Lab] OpenRouter request failed", { status: response.status, requestId: response.headers.get("x-request-id"), body: raw });
+      console.error("[Jev Lab] OpenRouter request failed", { status: response.status, requestId: response.headers.get("x-request-id"), body: raw });
       if (isBudgetExhausted(response.status, providerMessage)) throw new JevProviderError("You're too late! All free tokens have already been consumed.", "budget_exhausted", response.status);
       if (response.status === 401 || response.status === 403) throw new JevProviderError(providerMessage ? `OpenRouter rejected the API key: ${providerMessage}` : "OpenRouter rejected the API key.", "provider_error", response.status);
       if (response.status === 429) throw new JevProviderError(providerMessage ? `OpenRouter rate limit reached: ${providerMessage}` : "OpenRouter rate limit reached. Try again shortly.", "rate_limited", response.status);

@@ -8,7 +8,7 @@ services:
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
       OPENROUTER_JEV_MODEL: ${OPENROUTER_JEV_MODEL:-typesafe/jev-1.13}
       OPENROUTER_SITE_URL: ${OPENROUTER_SITE_URL:-http://localhost:3000}
-      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-Reflex Lab}
+      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-Jev Lab}
       MOCK_JEV: ${MOCK_JEV:-false}
     restart: unless-stopped
     healthcheck:

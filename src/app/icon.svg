@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Jev Lab classifier mark</title>
+  <desc id="desc">Three evidence inputs flow through a classifier node into a decision output.</desc>
+  <rect width="256" height="256" rx="56" fill="#17212b"/>
+  <path d="M58 72h44m-44 56h44m-44 56h44M102 72l42 56m-42 56 42-56m0 0h54" fill="none" stroke="#f7f4ed" stroke-linecap="round" stroke-linejoin="round" stroke-width="12"/>
+  <circle cx="58" cy="72" r="14" fill="#f29b82"/>
+  <circle cx="58" cy="128" r="14" fill="#a9cbe7"/>
+  <circle cx="58" cy="184" r="14" fill="#d9d0ec"/>
+  <path d="m144 104 24 24-24 24-24-24z" fill="#f4d47d" stroke="#f7f4ed" stroke-linejoin="round" stroke-width="8"/>
+  <circle cx="198" cy="128" r="17" fill="#a8c59b" stroke="#f7f4ed" stroke-width="8"/>
+</svg>

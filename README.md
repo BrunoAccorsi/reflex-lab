@@ -1,6 +1,6 @@
-# Reflex Lab
+# Jev Lab
 
-Reflex Lab is a local-first Next.js workbench for building transparent decision systems with Jev. Six guided capability labs demonstrate Choice, Score, Noul, repeated record evaluation, ranking, and deterministic policy composition. The `/studio` workspace adds visual and JSON authoring for custom browser-local presets.
+Jev Lab is a local-first Next.js workbench for building transparent decision systems with Jev. Six guided capability labs demonstrate Choice, Score, Noul, repeated record evaluation, ranking, and deterministic policy composition. The `/studio` workspace adds visual and JSON authoring for custom browser-local presets.
 
 ## Local development
 
