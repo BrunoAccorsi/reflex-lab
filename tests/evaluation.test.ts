@@ -29,6 +29,26 @@ describe("experiment definitions", () => {
     ]);
     for (const definition of experiments)
       expect(experimentDefinitionSchema.parse(definition)).toEqual(definition);
+
+    const modelSelector = getExperiment("opportunity-scorecard");
+    const modelQuestion = modelSelector.questions.find(
+      (question) => question.id === "model",
+    );
+    expect(modelSelector.title).toBe("Model selector");
+    expect(modelQuestion?.kind).toBe("choice");
+    expect(
+      modelQuestion?.kind === "choice"
+        ? Object.keys(modelQuestion.criteria)
+        : [],
+    ).toEqual([
+      "claudeOpus",
+      "claudeFable",
+      "gptAstra",
+      "gptSol",
+      "claudeSonnet",
+      "gptLuna",
+      "grok46",
+    ]);
   });
 
   it("expands record questions with stable ids and labels", () => {

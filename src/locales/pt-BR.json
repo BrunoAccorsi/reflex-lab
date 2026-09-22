@@ -392,173 +392,184 @@
       "fallback": "Inspecione os detalhes ou peça confirmação antes de prosseguir."
     },
     "opportunity-scorecard": {
-      "title": "Scorecard de oportunidade",
-      "description": "Componha vários julgamentos ordenados em uma pontuação de oportunidade editável e inspecionável.",
-      "simulatedAction": "Coloque a oportunidade em uma faixa de explorar, validar ou perseguir.",
+      "title": "Seletor de modelos",
+      "description": "Encaminhe um prompt para o modelo cujas capacidades documentadas melhor correspondem ao trabalho.",
+      "simulatedAction": "Recomende um modelo para o prompt; este seletor não faz uma requisição a nenhum provedor.",
       "fields": {
-        "opportunity": {
-          "label": "Resumo da oportunidade",
-          "description": "Problema, público e solução proposta."
+        "prompt": {
+          "label": "Prompt para encaminhar",
+          "description": "A tarefa ou solicitação que precisa de um modelo."
         },
-        "evidence": {
-          "label": "Evidências disponíveis",
-          "description": "Pesquisa, demanda, restrições e estimativas."
+        "constraints": {
+          "label": "Requisitos e restrições",
+          "description": "Latência, orçamento, contexto, ferramentas e requisitos de saída."
         }
       },
       "sampleState": {
-        "opportunity": "Adicionar limites e alertas de uso por equipe para contas em crescimento.",
-        "evidence": "18 entrevistas; 11 equipes controlam gastos manualmente. Duas renovações enterprise mencionam controle de custos. Estimativa de seis semanas de engenharia."
+        "prompt": "Revise um monorepo TypeScript grande, identifique a causa raiz de uma regressão em produção, implemente a correção e verifique-a com testes.",
+        "constraints": "A tarefa pode exigir várias chamadas de ferramenta e uma revisão cuidadosa do código. A correção importa mais que a latência, mas evite o modelo mais caro se a profundidade extra não for justificada."
       },
       "questions": {
-        "impact": {
-          "label": "Impacto potencial no cliente",
-          "instructions": "Impacto potencial no cliente. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+        "model": {
+          "label": "Modelo mais adequado",
+          "instructions": "Qual modelo melhor corresponde ao prompt, às restrições e ao perfil de capacidades documentado?",
+          "criteria": {
+            "claudeOpus": "Raciocínio complexo, programação profunda, trabalho agêntico de longa duração, revisão de código e fluxos corporativos em que qualidade importa mais que velocidade.",
+            "claudeFable": "Trabalho autônomo ou de longa duração mais exigente, com muitas etapas, aplicações ou contextos muito grandes; aceite maior latência e custo máximo.",
+            "gptAstra": "Raciocínio ponta a ponta mais difícil, uso de computador, navegação, engenharia de software, pesquisa ou artefatos profissionais que exigem ferramentas amplas e julgamento.",
+            "gptSol": "Raciocínio profissional complexo e programação com ferramentas; uma escolha geral forte quando a amplitude do Astra não é necessária.",
+            "claudeSonnet": "O melhor equilíbrio entre velocidade e inteligência para programação rápida, tarefas agênticas, documentos, visão e cargas de produção cotidianas.",
+            "gptLuna": "Cargas sensíveis a custo e de alto volume em que throughput e baixo custo por token importam mais que profundidade de raciocínio de fronteira.",
+            "grok46": "Programação, tarefas agênticas e trabalho de conhecimento com contexto longo, saídas estruturadas, uso de ferramentas ou entradas de imagem."
+          }
+        },
+        "reasoning": {
+          "label": "Profundidade de raciocínio necessária",
+          "instructions": "Profundidade de raciocínio necessária. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
           "levels": [
             {
               "label": "Muito baixo",
-              "description": "Quase nenhum impacto no cliente é sustentado pelas evidências."
+              "description": "Quase nenhuma profundidade de raciocínio é sustentada pelas evidências."
             },
             {
               "label": "Baixo",
-              "description": "Impacto limitado no cliente é sustentado pelas evidências."
+              "description": "Profundidade limitada de raciocínio é sustentada pelas evidências."
             },
             {
               "label": "Moderado",
-              "description": "Impacto misto ou moderado no cliente é sustentado pelas evidências."
+              "description": "Profundidade mista ou moderada de raciocínio é sustentada pelas evidências."
             },
             {
               "label": "Alto",
-              "description": "Forte impacto no cliente é sustentado pelas evidências."
+              "description": "Grande profundidade de raciocínio é sustentada pelas evidências."
             },
             {
               "label": "Muito alto",
-              "description": "Impacto excepcional no cliente é sustentado pelas evidências."
+              "description": "Profundidade excepcional de raciocínio é sustentada pelas evidências."
             }
           ]
         },
-        "evidence": {
-          "label": "Força das evidências",
-          "instructions": "Força das evidências. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+        "agentic": {
+          "label": "Complexidade de programação e tarefas agênticas",
+          "instructions": "Complexidade de programação e tarefas agênticas. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
           "levels": [
             {
               "label": "Muito baixa",
-              "description": "Quase nenhuma força das evidências é sustentada pelas evidências."
+              "description": "Quase nenhuma complexidade de programação e tarefas agênticas é sustentada pelas evidências."
             },
             {
               "label": "Baixa",
-              "description": "Força limitada das evidências é sustentada pelas evidências."
+              "description": "Complexidade limitada de programação e tarefas agênticas é sustentada pelas evidências."
             },
             {
               "label": "Moderada",
-              "description": "Força mista ou moderada das evidências é sustentada pelas evidências."
+              "description": "Complexidade mista ou moderada de programação e tarefas agênticas é sustentada pelas evidências."
             },
             {
               "label": "Alta",
-              "description": "Forte força das evidências é sustentada pelas evidências."
+              "description": "Grande complexidade de programação e tarefas agênticas é sustentada pelas evidências."
             },
             {
               "label": "Muito alta",
-              "description": "Força excepcional das evidências é sustentada pelas evidências."
+              "description": "Complexidade excepcional de programação e tarefas agênticas é sustentada pelas evidências."
             }
           ]
         },
-        "fit": {
-          "label": "Aderência estratégica",
-          "instructions": "Aderência estratégica. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+        "context": {
+          "label": "Complexidade de contexto e multimodalidade",
+          "instructions": "Complexidade de contexto e multimodalidade. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
           "levels": [
             {
               "label": "Muito baixa",
-              "description": "Quase nenhuma aderência estratégica é sustentada pelas evidências."
+              "description": "Quase nenhuma complexidade de contexto e multimodalidade é sustentada pelas evidências."
             },
             {
               "label": "Baixa",
-              "description": "Aderência estratégica limitada é sustentada pelas evidências."
+              "description": "Complexidade limitada de contexto e multimodalidade é sustentada pelas evidências."
             },
             {
               "label": "Moderada",
-              "description": "Aderência estratégica mista ou moderada é sustentada pelas evidências."
+              "description": "Complexidade mista ou moderada de contexto e multimodalidade é sustentada pelas evidências."
             },
             {
               "label": "Alta",
-              "description": "Forte aderência estratégica é sustentada pelas evidências."
+              "description": "Grande complexidade de contexto e multimodalidade é sustentada pelas evidências."
             },
             {
               "label": "Muito alta",
-              "description": "Aderência estratégica excepcional é sustentada pelas evidências."
+              "description": "Complexidade excepcional de contexto e multimodalidade é sustentada pelas evidências."
             }
           ]
         },
-        "effort": {
-          "label": "Esforço de implementação",
-          "instructions": "Esforço de implementação. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
+        "efficiency": {
+          "label": "Sensibilidade a velocidade e custo",
+          "instructions": "Sensibilidade a velocidade e custo. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
           "levels": [
             {
               "label": "Muito baixo",
-              "description": "Quase nenhum esforço de implementação é sustentado pelas evidências."
+              "description": "Quase nenhuma sensibilidade a velocidade e custo é sustentada pelas evidências."
             },
             {
               "label": "Baixo",
-              "description": "Esforço de implementação limitado é sustentado pelas evidências."
+              "description": "Sensibilidade limitada a velocidade e custo é sustentada pelas evidências."
             },
             {
               "label": "Moderado",
-              "description": "Esforço de implementação misto ou moderado é sustentado pelas evidências."
+              "description": "Sensibilidade mista ou moderada a velocidade e custo é sustentada pelas evidências."
             },
             {
               "label": "Alto",
-              "description": "Forte esforço de implementação é sustentado pelas evidências."
+              "description": "Grande sensibilidade a velocidade e custo é sustentada pelas evidências."
             },
             {
               "label": "Muito alto",
-              "description": "Esforço de implementação excepcional é sustentado pelas evidências."
-            }
-          ]
-        },
-        "risk": {
-          "label": "Risco de entrega e adoção",
-          "instructions": "Risco de entrega e adoção. Use apenas as evidências fornecidas e escolha o nível ordenado mais próximo.",
-          "levels": [
-            {
-              "label": "Muito baixo",
-              "description": "Quase nenhum risco de entrega e adoção é sustentado pelas evidências."
-            },
-            {
-              "label": "Baixo",
-              "description": "Risco de entrega e adoção limitado é sustentado pelas evidências."
-            },
-            {
-              "label": "Moderado",
-              "description": "Risco de entrega e adoção misto ou moderado é sustentado pelas evidências."
-            },
-            {
-              "label": "Alto",
-              "description": "Forte risco de entrega e adoção é sustentado pelas evidências."
-            },
-            {
-              "label": "Muito alto",
-              "description": "Risco de entrega e adoção excepcional é sustentado pelas evidências."
+              "description": "Sensibilidade excepcional a velocidade e custo é sustentada pelas evidências."
             }
           ]
         }
       },
       "metrics": {
-        "impact": "Impacto",
-        "evidence": "Evidências",
-        "fit": "Aderência estratégica",
-        "effort": "Baixo esforço",
-        "risk": "Baixo risco"
+        "confidence": "Confiança na correspondência do modelo",
+        "reasoning": "Profundidade de raciocínio",
+        "agentic": "Complexidade de programação e tarefas agênticas",
+        "context": "Complexidade de contexto e multimodalidade",
+        "efficiency": "Sensibilidade a velocidade e custo"
       },
       "rules": {
-        "pursue": {
-          "label": "Perseguir oportunidades fortes",
-          "recommendation": "Mova a oportunidade para o planejamento de descoberta e entrega."
+        "review-uncertain": {
+          "label": "Revisar correspondências incertas",
+          "recommendation": "Compare os principais candidatos e revise as restrições de roteamento antes de escolher um modelo."
         },
-        "validate": {
-          "label": "Validar evidências fracas",
-          "recommendation": "Execute uma etapa de validação focada antes de comprometer capacidade."
+        "claude-opus": {
+          "label": "Encaminhar para Claude Opus",
+          "recommendation": "Use Claude Opus para raciocínio profundo, revisão de código ou trabalho agêntico complexo em que qualidade é prioridade."
+        },
+        "claude-fable": {
+          "label": "Encaminhar para Claude Fable",
+          "recommendation": "Use Claude Fable para os fluxos mais longos, autônomos e exigentes, com tarefas de raciocínio em grande escala."
+        },
+        "gpt-astra": {
+          "label": "Encaminhar para GPT Astra",
+          "recommendation": "Use GPT Astra quando a tarefa exigir raciocínio ponta a ponta de fronteira, uso de computador, navegação ou artefatos profissionais."
+        },
+        "gpt-sol": {
+          "label": "Encaminhar para GPT Sol",
+          "recommendation": "Use GPT Sol para raciocínio profissional complexo e programação quando um generalista forte for suficiente."
+        },
+        "claude-sonnet": {
+          "label": "Encaminhar para Claude Sonnet",
+          "recommendation": "Use Claude Sonnet para um equilíbrio rápido e capaz em programação, tarefas agênticas, documentos e visão."
+        },
+        "gpt-luna": {
+          "label": "Encaminhar para GPT Luna",
+          "recommendation": "Use GPT Luna para cargas sensíveis a custo e de alto volume em que throughput é a prioridade."
+        },
+        "grok-46": {
+          "label": "Encaminhar para Grok 4.6",
+          "recommendation": "Use Grok 4.6 para programação, trabalho agêntico de conhecimento, contexto longo, saídas estruturadas ou entradas de imagem."
         }
       },
-      "fallback": "Mantenha a oportunidade em exploração e resolva a pontuação mais fraca."
+      "fallback": "Revise o prompt e as restrições antes de selecionar um modelo."
     },
     "candidate-matching": {
       "title": "Compatibilidade candidato-vaga",
@@ -993,6 +1004,13 @@
     "proceed": "prosseguir",
     "confirm": "confirmar",
     "inspect": "inspecionar",
-    "stop": "parar"
+    "stop": "parar",
+    "claudeOpus": "Claude Opus",
+    "claudeFable": "Claude Fable",
+    "gptAstra": "GPT Astra",
+    "gptSol": "GPT Sol",
+    "claudeSonnet": "Claude Sonnet",
+    "gptLuna": "GPT Luna",
+    "grok46": "Grok 4.6"
   }
 }

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 const labs = [
   "Support orchestration",
   "Tool-call safety gate",
-  "Opportunity scorecard",
+  "Model selector",
   "Candidate-role matching",
   "Response quality audit",
   "GitHub backlog prioritization",
@@ -82,6 +82,9 @@ test("switches the workbench between English and Brazilian Portuguese", async ({
   await expect(
     page.getByRole("heading", { name: "Support orchestration" }),
   ).toBeVisible();
+  await expect(
+    page.locator('header img[alt="Jev Lab classifier mark"]'),
+  ).toHaveAttribute("src", /icon\.svg/);
   await page.getByRole("button", { name: "Português (Brasil)" }).click();
   await expect(
     page.getByRole("heading", { name: "Orquestração de suporte" }),
@@ -111,6 +114,14 @@ test("evaluates all six capability labs and exposes typed answer evidence", asyn
   for (const lab of labs) {
     await page.getByRole("button", { name: new RegExp(lab, "i") }).click();
     await expect(page.getByRole("heading", { name: lab })).toBeVisible();
+    if (lab === "Model selector") {
+      await expect(page.getByLabel("Prompt to route")).toHaveValue(
+        /TypeScript monorepo/,
+      );
+      await expect(page.getByLabel("Requirements and constraints")).toHaveValue(
+        /multiple tool calls/,
+      );
+    }
     await page.getByRole("button", { name: /Evaluate lab/ }).click();
     await expect(page.getByText(/Composite signal/)).toBeVisible();
     await page.getByRole("tab", { name: "Answers" }).click();

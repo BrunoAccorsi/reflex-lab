@@ -452,71 +452,96 @@ export const rawDefinitions: ExperimentDefinitionV1[] = [
   {
     version: 1,
     id: "opportunity-scorecard",
-    title: "Opportunity scorecard",
-    eyebrow: "03 / SCORE",
+    title: "Model selector",
+    eyebrow: "03 / SELECT",
     accent: "gold",
     description:
-      "Compose several ordered judgments into an editable, inspectable opportunity score.",
+      "Route a prompt to the model whose documented strengths best fit the work.",
     simulatedAction:
-      "Place the opportunity in an explore, validate, or pursue band.",
+      "Recommend a model for the prompt; no provider request is made by this selector.",
     fields: [
       {
-        id: "opportunity",
+        id: "prompt",
         type: "multiline",
-        label: "Opportunity brief",
-        description: "Problem, audience, and proposed solution.",
+        label: "Prompt to route",
+        description: "The task or request that needs a model.",
         required: true,
       },
       {
-        id: "evidence",
+        id: "constraints",
         type: "multiline",
-        label: "Available evidence",
-        description: "Research, demand, constraints, and estimates.",
+        label: "Requirements and constraints",
+        description:
+          "Latency, budget, context, tools, and output requirements.",
         required: true,
       },
     ],
     sampleState: {
-      opportunity:
-        "Add team-level usage budgets and alerts for growing accounts.",
-      evidence:
-        "18 interviews; 11 teams track spend manually. Two enterprise renewals cite cost controls. Estimated six engineering weeks.",
+      prompt:
+        "Review a large TypeScript monorepo, identify the root cause of a production regression, implement the fix, and verify it with tests.",
+      constraints:
+        "The task may require multiple tool calls and careful code review. Correctness matters more than latency, but avoid the highest-cost model unless its extra depth is justified.",
     },
     questions: [
-      scoreQuestion("impact", "Potential customer impact", "customer impact"),
-      scoreQuestion("evidence", "Evidence strength", "evidence strength"),
-      scoreQuestion("fit", "Strategic fit", "strategic fit"),
-      scoreQuestion("effort", "Implementation effort", "implementation effort"),
-      scoreQuestion("risk", "Delivery and adoption risk", "risk"),
+      {
+        id: "model",
+        label: "Best-fit model",
+        kind: "choice",
+        target: staticTarget,
+        instructions:
+          "Which model best matches the prompt, constraints, and documented capability profile?",
+        criteria: {
+          claudeOpus:
+            "Complex reasoning, deep coding, long-horizon agentic work, code review, and enterprise workflows where quality matters more than speed.",
+          claudeFable:
+            "The most demanding long-running or autonomous work across many steps, applications, or very large contexts; accept slower latency and highest cost.",
+          gptAstra:
+            "Hardest end-to-end reasoning, computer use, browsing, software engineering, research, or professional artifact work where broad tools and judgment matter.",
+          gptSol:
+            "Complex professional reasoning and coding with tools; a strong general-purpose choice when Astra-level breadth is unnecessary.",
+          claudeSonnet:
+            "The best speed-and-intelligence balance for fast coding, agentic tasks, document work, vision, and everyday production workloads.",
+          gptLuna:
+            "Cost-sensitive, high-volume workloads where throughput and low per-token cost matter more than frontier reasoning depth.",
+          grok46:
+            "Coding, agentic tasks, and knowledge work with long context, structured outputs, tool use, or image inputs.",
+        },
+      },
+      scoreQuestion("reasoning", "Reasoning depth required", "reasoning depth"),
+      scoreQuestion(
+        "agentic",
+        "Coding and agentic complexity",
+        "coding and agentic complexity",
+      ),
+      scoreQuestion(
+        "context",
+        "Context and multimodal complexity",
+        "context and multimodal complexity",
+      ),
+      scoreQuestion(
+        "efficiency",
+        "Speed and cost sensitivity",
+        "speed and cost sensitivity",
+      ),
     ],
     policy: {
       metrics: [
         {
-          id: "impact",
-          label: "Impact",
+          id: "confidence",
+          label: "Model match confidence",
           source: {
-            questionId: "impact",
-            signal: "score",
+            questionId: "model",
+            signal: "confidence",
             aggregation: "average",
           },
-          weight: 1.5,
+          weight: 1,
           invert: false,
         },
         {
-          id: "evidence",
-          label: "Evidence",
+          id: "reasoning",
+          label: "Reasoning depth",
           source: {
-            questionId: "evidence",
-            signal: "score",
-            aggregation: "average",
-          },
-          weight: 1.3,
-          invert: false,
-        },
-        {
-          id: "fit",
-          label: "Strategic fit",
-          source: {
-            questionId: "fit",
+            questionId: "reasoning",
             signal: "score",
             aggregation: "average",
           },
@@ -524,70 +549,165 @@ export const rawDefinitions: ExperimentDefinitionV1[] = [
           invert: false,
         },
         {
-          id: "effort",
-          label: "Low effort",
+          id: "agentic",
+          label: "Coding and agentic complexity",
           source: {
-            questionId: "effort",
+            questionId: "agentic",
             signal: "score",
             aggregation: "average",
           },
-          weight: 0.9,
-          invert: true,
+          weight: 1.2,
+          invert: false,
         },
         {
-          id: "risk",
-          label: "Low risk",
+          id: "context",
+          label: "Context and multimodal complexity",
           source: {
-            questionId: "risk",
+            questionId: "context",
+            signal: "score",
+            aggregation: "average",
+          },
+          weight: 1,
+          invert: false,
+        },
+        {
+          id: "efficiency",
+          label: "Speed and cost sensitivity",
+          source: {
+            questionId: "efficiency",
             signal: "score",
             aggregation: "average",
           },
           weight: 0.8,
-          invert: true,
+          invert: false,
         },
       ],
       rules: [
         {
-          id: "pursue",
-          label: "Pursue strong opportunities",
+          id: "review-uncertain",
+          label: "Review uncertain model matches",
           all: [
             {
               type: "metric",
-              metricId: "impact",
-              operator: "gte",
-              value: 0.65,
-            },
-            {
-              type: "metric",
-              metricId: "evidence",
-              operator: "gte",
-              value: 0.55,
-            },
-          ],
-          outcome: "act",
-          recommendation:
-            "Move the opportunity into discovery and delivery planning.",
-        },
-        {
-          id: "validate",
-          label: "Validate weak evidence",
-          all: [
-            {
-              type: "metric",
-              metricId: "evidence",
+              metricId: "confidence",
               operator: "lt",
               value: 0.55,
             },
           ],
           outcome: "review",
           recommendation:
-            "Run a focused validation step before committing capacity.",
+            "Compare the top candidates and review the routing constraints before choosing a model.",
+        },
+        {
+          id: "claude-opus",
+          label: "Route to Claude Opus",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "claudeOpus",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use Claude Opus for deep reasoning, code review, or complex agentic work where quality takes priority.",
+        },
+        {
+          id: "claude-fable",
+          label: "Route to Claude Fable",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "claudeFable",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use Claude Fable for the longest, most autonomous workflows and the largest reasoning-heavy tasks.",
+        },
+        {
+          id: "gpt-astra",
+          label: "Route to GPT Astra",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "gptAstra",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use GPT Astra when the task needs frontier end-to-end reasoning, computer use, browsing, or professional artifacts.",
+        },
+        {
+          id: "gpt-sol",
+          label: "Route to GPT Sol",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "gptSol",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use GPT Sol for complex professional reasoning and coding when a strong generalist is sufficient.",
+        },
+        {
+          id: "claude-sonnet",
+          label: "Route to Claude Sonnet",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "claudeSonnet",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use Claude Sonnet for a fast, capable balance across coding, agentic, document, and vision workloads.",
+        },
+        {
+          id: "gpt-luna",
+          label: "Route to GPT Luna",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "gptLuna",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use GPT Luna for cost-sensitive, high-volume workloads where throughput is the priority.",
+        },
+        {
+          id: "grok-46",
+          label: "Route to Grok 4.6",
+          all: [
+            {
+              type: "selectedChoice",
+              questionId: "model",
+              operator: "eq",
+              value: "grok46",
+            },
+          ],
+          outcome: "review",
+          recommendation:
+            "Use Grok 4.6 for coding, agentic knowledge work, long context, structured outputs, or image inputs.",
         },
       ],
       fallback: {
         outcome: "review",
         recommendation:
-          "Keep the opportunity in exploration and resolve the weakest score.",
+          "Review the prompt and constraints before selecting a model.",
       },
     },
   },

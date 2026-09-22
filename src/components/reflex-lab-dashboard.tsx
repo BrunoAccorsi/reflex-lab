@@ -1,11 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowRight,
-  ChartNetwork,
   Layers3,
   LoaderCircle,
   Plus,
@@ -319,9 +319,14 @@ export function ReflexLabDashboard() {
       <div className="mx-auto max-w-workbench px-4 py-5 sm:px-8 lg:px-10 xl:px-12">
         <header className="flex items-center justify-between gap-4 border-b border-ink/10 pb-5">
           <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-ink text-white">
-              <ChartNetwork size={19} />
-            </div>
+            <Image
+              src="/icon.svg"
+              alt="Jev Lab classifier mark"
+              width={40}
+              height={40}
+              priority
+              className="rounded-xl"
+            />
             <div>
               <p className="text-lg font-black tracking-tight">Jev Lab</p>
               <p className="text-xs font-semibold uppercase tracking-brand text-ink/50">

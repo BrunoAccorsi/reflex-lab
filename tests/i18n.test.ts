@@ -53,6 +53,7 @@ describe("localization", () => {
 
   it("uses stable option keys and localizes only their display values", () => {
     expect(localizeValue("billing", "pt-BR")).toBe("cobrança");
+    expect(localizeValue("claudeOpus", "pt-BR")).toBe("Claude Opus");
     expect(localizeValue("billing", "en")).toBe("billing");
     expect(localizeValue("custom-option", "pt-BR")).toBe("custom-option");
   });

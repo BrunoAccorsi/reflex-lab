@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { ArrowRight, ChevronDown, PanelLeftClose } from "lucide-react";
 import { type ExperimentDefinitionV1 } from "@/lib/experiments";
 import { accentStyles } from "@/lib/experiment-theme";
@@ -52,20 +51,14 @@ export function LabSelector({
           onClick={() => onDesktopMenuToggle()}
           className="group grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-ink/10 bg-white text-ink shadow-card transition-all duration-500 hover:scale-105 hover:bg-paper motion-reduce:transition-none"
         >
-          {desktopMenuOpen ? (
-            <span className="transition-transform duration-500 ease-smooth motion-reduce:transition-none group-hover:-translate-x-0.5">
-              <PanelLeftClose size={19} />
-            </span>
-          ) : (
-            <Image
-              src="/icon.svg"
-              alt=""
-              width={24}
-              height={24}
-              aria-hidden="true"
-              className="rounded-lg transition-transform duration-500 ease-smooth motion-reduce:transition-none group-hover:scale-110"
-            />
-          )}
+          <span
+            className={cn(
+              "transition-transform duration-500 ease-smooth motion-reduce:transition-none",
+              !desktopMenuOpen && "rotate-180",
+            )}
+          >
+            <PanelLeftClose size={19} />
+          </span>
         </button>
       </div>
       <button
