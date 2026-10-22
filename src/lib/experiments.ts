@@ -80,7 +80,7 @@ export const questionSchema = z.discriminatedUnion("kind", [
     ...questionBase,
     kind: z.literal("choice"),
     criteria: z
-      .record(slugSchema, textSchema)
+      .record(slugSchema, textSchema.nullable())
       .refine(
         (value) => Object.keys(value).length >= 2,
         "Choice requires at least two options",
@@ -101,7 +101,7 @@ export const questionSchema = z.discriminatedUnion("kind", [
   z.object({
     ...questionBase,
     kind: z.literal("noul"),
-    criteria: z.object({ true: textSchema, false: textSchema }),
+    criteria: z.object({ true: textSchema, false: textSchema }).optional(),
   }),
 ]);
 

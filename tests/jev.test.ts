@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getExperiment } from "@/lib/experiments";
+import {
+  blankExperiment,
+  experimentDefinitionSchema,
+  getExperiment,
+} from "@/lib/experiments";
 import { buildDecisionRequest, createJevProvider } from "@/server/jev";
 import { evaluationRouter } from "@/server/routers/evaluation";
 
@@ -107,6 +111,68 @@ describe("OpenRouter Jev Decisions provider", () => {
     expect(built.expanded).toHaveLength(15);
     expect(built.request.questions).toHaveProperty("impact__0");
     expect(built.request.questions).toHaveProperty("blocked__2");
+  });
+
+  it("preserves native criteria and structured state, including null and omitted criteria", () => {
+    const definition = experimentDefinitionSchema.parse({
+      ...blankExperiment,
+      questions: [
+        {
+          id: "department",
+          kind: "choice",
+          label: "Department",
+          instructions: "Which team handles this?",
+          target: { type: "static" },
+          criteria: { billing: "Payments and charges", technical: null },
+        },
+        {
+          id: "severity",
+          kind: "score",
+          label: "Severity",
+          instructions: "How severe is this?",
+          target: { type: "static" },
+          levels: [
+            { label: "Low", description: "Cosmetic issue" },
+            { label: "High", description: "Critical feature blocked" },
+          ],
+        },
+        {
+          id: "supported",
+          kind: "noul",
+          label: "Supported",
+          instructions: "Is the proposition supported?",
+          target: { type: "static" },
+        },
+      ],
+    });
+    const state = {
+      ...definition.sampleState,
+      pullRequest: {
+        title: "Update payment service",
+        filesChanged: ["payment.ts", "schema.graphql"],
+        additions: 120,
+        deletions: 32,
+        hasTests: false,
+      },
+    };
+    const built = buildDecisionRequest({ definition, state }, "test/model");
+    expect(built.request.state).toMatchObject({
+      pullRequest: state.pullRequest,
+    });
+    expect(built.request.questions.department).toEqual({
+      type: "choice",
+      instructions: "Which team handles this?",
+      criteria: { billing: "Payments and charges", technical: null },
+    });
+    expect(built.request.questions.severity).toEqual({
+      type: "score",
+      instructions: "How severe is this?",
+      criteria: ["Low: Cosmetic issue", "High: Critical feature blocked"],
+    });
+    expect(built.request.questions.supported).toEqual({
+      type: "noul",
+      instructions: "Is the proposition supported?",
+    });
   });
 
   it("rejects missing, unknown, and malformed provider answers", async () => {

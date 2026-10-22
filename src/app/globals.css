@@ -45,7 +45,7 @@
   --grid-template-columns-studio: 280px minmax(0, 1fr);
   --grid-template-columns-record: 1fr 1fr 140px auto;
   --grid-template-columns-question: 150px 1fr;
-  --grid-template-columns-policy: 1fr 180px 100px auto;
+  --grid-template-columns-policy: minmax(0, 1fr) minmax(0, 1fr) 100px auto;
   --grid-template-columns-rule: 1fr 130px;
   --shadow-card: 0 14px 40px rgba(23, 32, 42, 0.08);
 }
@@ -85,4 +85,34 @@ textarea {
 
 .progress-fill {
   width: var(--progress-width);
+}
+
+.json-editor-input,
+.json-editor-highlight,
+.json-editor-gutter {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5rem;
+  tab-size: 2;
+}
+
+.json-editor-input {
+  color: transparent;
+  caret-color: var(--color-paper);
+}
+
+.json-editor-input::selection {
+  background: color-mix(in srgb, var(--color-sky) 30%, transparent);
+  color: transparent;
+}
+
+@media (forced-colors: active) {
+  .json-editor-input {
+    color: CanvasText;
+    caret-color: auto;
+  }
+
+  .json-editor-overlay {
+    visibility: hidden;
+  }
 }

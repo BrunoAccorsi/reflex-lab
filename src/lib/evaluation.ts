@@ -26,7 +26,7 @@ export type ChoiceAnswer = AnswerBase & {
   selected: string;
   confidence: number;
   probabilities: Record<string, number>;
-  criteria: Record<string, string>;
+  criteria: Record<string, string | null>;
 };
 export type ScoreAnswer = AnswerBase & {
   kind: "score";
@@ -40,7 +40,7 @@ export type NoulAnswer = AnswerBase & {
   kind: "noul";
   probabilityYes: number;
   probabilityNo: number;
-  criteria: { true: string; false: string };
+  criteria?: { true: string; false: string };
 };
 export type TypedAnswer = ChoiceAnswer | ScoreAnswer | NoulAnswer;
 

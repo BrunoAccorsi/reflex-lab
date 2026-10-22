@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/components/language-toggle";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { JsonViewer } from "@/components/json-code";
 
 const tabs = ["Outcome", "Answers", "Composition", "Compare", "API"] as const;
 export type ResultTab = (typeof tabs)[number];
@@ -146,14 +147,16 @@ function AnswerCard({ answer, language, t }: AnswerProps) {
               <p className="font-black">
                 {t("yes")} · {percent(answer.probabilityYes)}
               </p>
-              <p className="mt-1 text-xs text-ink/55">{answer.criteria.true}</p>
+              <p className="mt-1 text-xs text-ink/55">
+                {answer.criteria?.true}
+              </p>
             </div>
             <div className="rounded-xl bg-coral/10 p-3">
               <p className="font-black">
                 {t("no")} · {percent(answer.probabilityNo)}
               </p>
               <p className="mt-1 text-xs text-ink/55">
-                {answer.criteria.false}
+                {answer.criteria?.false}
               </p>
             </div>
           </div>
@@ -479,22 +482,14 @@ export function ResultWorkspace({
             )}
             {activeTab === "API" && (
               <div className="space-y-4">
-                <div>
-                  <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-ink/45">
-                    {t("sanitizedRequest")}
-                  </h3>
-                  <pre className="max-h-80 overflow-auto rounded-xl bg-code p-4 text-xs leading-5 text-white">
-                    {JSON.stringify(result.request, null, 2)}
-                  </pre>
-                </div>
-                <div>
-                  <h3 className="mb-2 text-xs font-black uppercase tracking-wider text-ink/45">
-                    {t("rawResponse")}
-                  </h3>
-                  <pre className="max-h-80 overflow-auto rounded-xl bg-code p-4 text-xs leading-5 text-white">
-                    {JSON.stringify(result.rawResponse, null, 2)}
-                  </pre>
-                </div>
+                <JsonViewer
+                  label={t("sanitizedRequest")}
+                  value={result.request}
+                />
+                <JsonViewer
+                  label={t("rawResponse")}
+                  value={result.rawResponse}
+                />
               </div>
             )}
           </div>

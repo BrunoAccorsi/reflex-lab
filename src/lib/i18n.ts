@@ -88,10 +88,12 @@ function localizeQuestion(
       return {
         ...question,
         ...labels,
-        criteria: {
-          true: copy.criteria?.true ?? question.criteria.true,
-          false: copy.criteria?.false ?? question.criteria.false,
-        },
+        criteria: question.criteria
+          ? {
+              true: copy.criteria?.true ?? question.criteria.true,
+              false: copy.criteria?.false ?? question.criteria.false,
+            }
+          : undefined,
       };
   }
 }

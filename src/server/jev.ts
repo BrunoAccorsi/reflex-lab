@@ -94,7 +94,7 @@ export function buildDecisionRequest(input: EvaluationInput, model: string) {
         {
           type: "noul",
           instructions: renderInstructions(question),
-          criteria: question.criteria,
+          ...(question.criteria ? { criteria: question.criteria } : {}),
         },
       ];
     }),

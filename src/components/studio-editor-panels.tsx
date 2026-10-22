@@ -1,6 +1,7 @@
 "use client";
 
 import { Braces, Plus, Trash2 } from "lucide-react";
+import { useId } from "react";
 import {
   type ExperimentDefinitionV1,
   type MetricDefinition,
@@ -11,6 +12,8 @@ import {
 import { useLanguage } from "@/components/language-toggle";
 import { createId } from "@/lib/ids";
 import { Button } from "@/components/ui/button";
+import { StudioQuestionOptions } from "@/components/studio-question-options";
+import { JsonEditor } from "@/components/json-code";
 
 export type EditorTab = "Definition" | "Questions" | "Policy" | "JSON";
 
@@ -29,6 +32,69 @@ function replaceAt<T>(items: T[], index: number, replacement: T): T[] {
   );
 }
 
+function EditorChoice({
+  label,
+  accessibleLabel = label,
+  value,
+  options,
+  onChange,
+  help,
+  emptyMessage,
+}: {
+  label: string;
+  accessibleLabel?: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  help?: string;
+  emptyMessage?: string;
+}) {
+  const { t } = useLanguage();
+  const helpId = useId();
+  const selected = options.find((option) => option.value === value);
+  const unavailable = `${t("unavailable")}: ${value}`;
+  const hint = options.length === 0 ? emptyMessage : help;
+
+  return (
+    <label className="min-w-0 text-sm">
+      <span className="mb-2 block text-xs font-bold text-ink/60">{label}</span>
+      {options.length > 0 && (options.length > 1 || !selected) ? (
+        <select
+          aria-label={accessibleLabel}
+          aria-describedby={hint ? helpId : undefined}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm"
+        >
+          {!selected && (
+            <option value={value} disabled>
+              {unavailable}
+            </option>
+          )}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <output
+          aria-label={accessibleLabel}
+          aria-describedby={hint ? helpId : undefined}
+          className="block break-words rounded-xl bg-paper p-3 text-sm text-ink/70"
+        >
+          {selected?.label ?? unavailable}
+        </output>
+      )}
+      {hint && (
+        <span id={helpId} className="mt-2 block text-xs leading-5 text-ink/50">
+          {hint}
+        </span>
+      )}
+    </label>
+  );
+}
+
 export function StudioEditorPanels({
   tab,
   definition,
@@ -38,11 +104,49 @@ export function StudioEditorPanels({
   updateJson,
 }: StudioEditorPanelsProps) {
   const { t } = useLanguage();
+  const recordFields = definition.fields.filter(
+    (field) => field.type === "records",
+  );
 
   function editQuestion(index: number, next: QuestionDefinition) {
     update({
       ...definition,
       questions: replaceAt(definition.questions, index, next),
+    });
+  }
+  function renameOption(index: number, previous: string, next: string) {
+    const question = definition.questions[index];
+    if (question.kind !== "choice" || previous === next) return;
+    update({
+      ...definition,
+      questions: replaceAt(definition.questions, index, {
+        ...question,
+        criteria: Object.fromEntries(
+          Object.entries(question.criteria).map(([value, criterion]) => [
+            value === previous ? next : value,
+            criterion,
+          ]),
+        ),
+      }),
+      policy: {
+        ...definition.policy,
+        metrics: definition.policy.metrics.map((metric) =>
+          metric.source.questionId === question.id &&
+          metric.source.option === previous
+            ? { ...metric, source: { ...metric.source, option: next } }
+            : metric,
+        ),
+        rules: definition.policy.rules.map((rule) => ({
+          ...rule,
+          all: rule.all.map((condition) =>
+            condition.type === "selectedChoice" &&
+            condition.questionId === question.id &&
+            condition.value === previous
+              ? { ...condition, value: next }
+              : condition,
+          ),
+        })),
+      },
     });
   }
   function editField(index: number, next: StateField) {
@@ -178,9 +282,10 @@ export function StudioEditorPanels({
               </Button>
             </div>
             <div className="space-y-3">
+              {/* Keep row identity independent of the editable field identifier. */}
               {definition.fields.map((field, index) => (
                 <div
-                  key={`${field.id}-${index}`}
+                  key={index}
                   className="grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-record"
                 >
                   <input
@@ -280,10 +385,10 @@ export function StudioEditorPanels({
                 >
                   <Plus size={13} className="mr-1" />{" "}
                   {kind === "choice"
-                    ? t("choice")
+                    ? t("kindChoice")
                     : kind === "score"
-                      ? t("score")
-                      : t("noul")}
+                      ? t("kindScore")
+                      : t("kindNoul")}
                 </Button>
               ))}
             </div>
@@ -298,10 +403,10 @@ export function StudioEditorPanels({
                   <div>
                     <span className="rounded-full bg-paper px-2 py-1 text-xs font-black uppercase">
                       {question.kind === "choice"
-                        ? t("choice")
+                        ? t("kindChoice")
                         : question.kind === "score"
-                          ? t("score")
-                          : t("noul")}
+                          ? t("kindScore")
+                          : t("kindNoul")}
                     </span>
                     <span className="ml-2 font-mono text-xs text-ink/40">
                       {question.id}
@@ -322,165 +427,166 @@ export function StudioEditorPanels({
                   </button>
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <input
-                    aria-label={`${t("questions")} ${index + 1} ${t("title")}`}
-                    value={question.label}
-                    onChange={(event) =>
-                      editQuestion(index, {
-                        ...question,
-                        label: event.target.value,
-                      })
-                    }
-                    className="rounded-xl border border-ink/10 bg-paper p-3 text-sm font-bold"
-                  />
-                  <select
-                    aria-label={`${t("questions")} ${index + 1} ${t("action")}`}
+                  <label className="min-w-0 text-sm">
+                    <span className="mb-2 block text-xs font-bold text-ink/60">
+                      {t("title")}
+                    </span>
+                    <input
+                      aria-label={`${t("questions")} ${index + 1} ${t("title")}`}
+                      value={question.label}
+                      onChange={(event) =>
+                        editQuestion(index, {
+                          ...question,
+                          label: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm font-bold"
+                    />
+                  </label>
+                  <EditorChoice
+                    label={t("runMode")}
+                    accessibleLabel={`${t("questions")} ${index + 1} ${t("runMode")}`}
                     value={
                       question.target.type === "static"
                         ? "static"
                         : question.target.fieldId
                     }
-                    onChange={(event) =>
+                    onChange={(value) =>
                       editQuestion(index, {
                         ...question,
                         target:
-                          event.target.value === "static"
+                          value === "static"
                             ? { type: "static" }
                             : {
                                 type: "records",
-                                fieldId: event.target.value,
+                                fieldId: value,
                               },
                       })
                     }
-                    className="rounded-xl border border-ink/10 bg-paper p-3 text-sm"
-                  >
-                    <option value="static">{t("static")}</option>
-                    {definition.fields
-                      .filter((field) => field.type === "records")
-                      .map((field) => (
-                        <option key={field.id} value={field.id}>
-                          {t("repeat")}: {field.label}
-                        </option>
-                      ))}
-                  </select>
-                  <textarea
-                    aria-label={`${t("questions")} ${index + 1} ${t("instructions")}`}
-                    value={question.instructions}
-                    onChange={(event) =>
-                      editQuestion(index, {
-                        ...question,
-                        instructions: event.target.value,
-                      })
+                    options={[
+                      { value: "static", label: t("runsOnce") },
+                      ...recordFields.map((field) => ({
+                        value: field.id,
+                        label: `${t("repeat")}: ${field.label}`,
+                      })),
+                    ]}
+                    help={
+                      recordFields.length === 0
+                        ? t("addRecordsForRepeat")
+                        : undefined
                     }
-                    className="min-h-20 rounded-xl border border-ink/10 bg-paper p-3 text-sm sm:col-span-2"
                   />
+                  <label className="min-w-0 text-sm sm:col-span-2">
+                    <span className="mb-2 block text-xs font-bold text-ink/60">
+                      {t("questionInstructions")}
+                    </span>
+                    <textarea
+                      aria-label={`${t("questions")} ${index + 1} ${t("instructions")}`}
+                      value={question.instructions}
+                      onChange={(event) =>
+                        editQuestion(index, {
+                          ...question,
+                          instructions: event.target.value,
+                        })
+                      }
+                      className="min-h-20 w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm"
+                    />
+                  </label>
                 </div>
-                {question.kind === "choice" && (
-                  <div className="mt-3 space-y-2">
-                    {Object.entries(question.criteria).map(
-                      ([option, criterion]) => (
-                        <div
-                          key={option}
-                          className="grid gap-2 sm:grid-cols-question"
-                        >
-                          <input
-                            value={option}
-                            readOnly
-                            className="rounded-lg border border-ink/10 bg-paper p-2 font-mono text-xs"
-                          />
-                          <input
-                            value={criterion}
+                {(question.kind === "choice" || question.kind === "score") && (
+                  <StudioQuestionOptions
+                    question={question}
+                    onChange={(next) => editQuestion(index, next)}
+                    onRenameOption={(previous, next) =>
+                      renameOption(index, previous, next)
+                    }
+                    protectedOptions={[
+                      ...definition.policy.metrics
+                        .filter(
+                          (metric) =>
+                            metric.source.questionId === question.id &&
+                            metric.source.signal === "choiceProbability",
+                        )
+                        .flatMap((metric) =>
+                          metric.source.option ? [metric.source.option] : [],
+                        ),
+                      ...definition.policy.rules.flatMap((rule) =>
+                        rule.all.flatMap((condition) =>
+                          condition.type === "selectedChoice" &&
+                          condition.questionId === question.id
+                            ? [condition.value]
+                            : [],
+                        ),
+                      ),
+                    ]}
+                  />
+                )}
+                {question.kind === "noul" && (
+                  <div className="mt-4 space-y-3">
+                    <label className="flex items-center gap-2 text-sm font-bold">
+                      <input
+                        type="checkbox"
+                        aria-label={`${question.label} ${t("useNoulCriteria")}`}
+                        checked={Boolean(question.criteria)}
+                        onChange={(event) =>
+                          editQuestion(index, {
+                            ...question,
+                            criteria: event.target.checked
+                              ? {
+                                  true: t("evidenceSupportsYes"),
+                                  false: t("evidenceSupportsNo"),
+                                }
+                              : undefined,
+                          })
+                        }
+                      />
+                      {t("useNoulCriteria")}
+                    </label>
+                    <p className="text-xs leading-5 text-ink/50">
+                      {t("noulCriteriaHelp")}
+                    </p>
+                    {question.criteria && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="min-w-0 text-xs font-bold text-ink/60">
+                          <span className="mb-2 block">{t("yesCriteria")}</span>
+                          <textarea
+                            aria-label={`${question.label} true criteria`}
+                            value={question.criteria.true}
                             onChange={(event) =>
                               editQuestion(index, {
                                 ...question,
                                 criteria: {
-                                  ...question.criteria,
-                                  [option]: event.target.value,
+                                  true: event.target.value,
+                                  false:
+                                    question.criteria?.false ??
+                                    t("evidenceSupportsNo"),
                                 },
                               })
                             }
-                            className="rounded-lg border border-ink/10 p-2 text-sm"
+                            className="min-h-20 w-full rounded-lg border border-moss/20 bg-moss/5 p-2 text-sm font-normal text-ink"
                           />
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-                {question.kind === "score" && (
-                  <div className="mt-3 space-y-2">
-                    {question.levels.map((level, levelIndex) => (
-                      <div
-                        key={levelIndex}
-                        className="grid gap-2 sm:grid-cols-question"
-                      >
-                        <input
-                          value={level.label}
-                          onChange={(event) =>
-                            editQuestion(index, {
-                              ...question,
-                              levels: question.levels.map((item, itemIndex) =>
-                                itemIndex === levelIndex
-                                  ? {
-                                      ...item,
-                                      label: event.target.value,
-                                    }
-                                  : item,
-                              ),
-                            })
-                          }
-                          className="rounded-lg border border-ink/10 bg-paper p-2 text-sm font-bold"
-                        />
-                        <input
-                          value={level.description}
-                          onChange={(event) =>
-                            editQuestion(index, {
-                              ...question,
-                              levels: question.levels.map((item, itemIndex) =>
-                                itemIndex === levelIndex
-                                  ? {
-                                      ...item,
-                                      description: event.target.value,
-                                    }
-                                  : item,
-                              ),
-                            })
-                          }
-                          className="rounded-lg border border-ink/10 p-2 text-sm"
-                        />
+                        </label>
+                        <label className="min-w-0 text-xs font-bold text-ink/60">
+                          <span className="mb-2 block">{t("noCriteria")}</span>
+                          <textarea
+                            aria-label={`${question.label} false criteria`}
+                            value={question.criteria.false}
+                            onChange={(event) =>
+                              editQuestion(index, {
+                                ...question,
+                                criteria: {
+                                  true:
+                                    question.criteria?.true ??
+                                    t("evidenceSupportsYes"),
+                                  false: event.target.value,
+                                },
+                              })
+                            }
+                            className="min-h-20 w-full rounded-lg border border-coral/20 bg-coral/5 p-2 text-sm font-normal text-ink"
+                          />
+                        </label>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {question.kind === "noul" && (
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                    <textarea
-                      aria-label={`${question.label} true criteria`}
-                      value={question.criteria.true}
-                      onChange={(event) =>
-                        editQuestion(index, {
-                          ...question,
-                          criteria: {
-                            ...question.criteria,
-                            true: event.target.value,
-                          },
-                        })
-                      }
-                      className="min-h-20 rounded-lg border border-moss/20 bg-moss/5 p-2 text-sm"
-                    />
-                    <textarea
-                      aria-label={`${question.label} false criteria`}
-                      value={question.criteria.false}
-                      onChange={(event) =>
-                        editQuestion(index, {
-                          ...question,
-                          criteria: {
-                            ...question.criteria,
-                            false: event.target.value,
-                          },
-                        })
-                      }
-                      className="min-h-20 rounded-lg border border-coral/20 bg-coral/5 p-2 text-sm"
-                    />
+                    )}
                   </div>
                 )}
               </div>
@@ -501,50 +607,60 @@ export function StudioEditorPanels({
                   key={metric.id}
                   className="grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-policy"
                 >
-                  <input
-                    value={metric.label}
-                    onChange={(event) =>
-                      editMetric(index, {
-                        ...metric,
-                        label: event.target.value,
-                      })
-                    }
-                    className="rounded-lg border border-ink/10 bg-white p-2 text-sm font-bold"
-                  />
-                  <select
+                  <label className="min-w-0 text-sm">
+                    <span className="mb-2 block text-xs font-bold text-ink/60">
+                      {t("title")}
+                    </span>
+                    <input
+                      value={metric.label}
+                      onChange={(event) =>
+                        editMetric(index, {
+                          ...metric,
+                          label: event.target.value,
+                        })
+                      }
+                      className="w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm font-bold"
+                    />
+                  </label>
+                  <EditorChoice
+                    label={t("sourceQuestion")}
+                    accessibleLabel={`${t("sourceQuestion")} ${index + 1}`}
                     value={metric.source.questionId}
-                    onChange={(event) =>
+                    onChange={(value) =>
                       editMetric(index, {
                         ...metric,
                         source: {
                           ...metric.source,
-                          questionId: event.target.value,
+                          questionId: value,
                         },
                       })
                     }
-                    className="rounded-lg border border-ink/10 bg-white p-2 text-sm"
-                  >
-                    {definition.questions.map((question) => (
-                      <option key={question.id} value={question.id}>
-                        {question.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    aria-label={`${metric.label} weight`}
-                    type="number"
-                    min="0"
-                    max="10"
-                    step="0.1"
-                    value={metric.weight}
-                    onChange={(event) =>
-                      editMetric(index, {
-                        ...metric,
-                        weight: Number(event.target.value),
-                      })
-                    }
-                    className="rounded-lg border border-ink/10 bg-white p-2 text-sm"
+                    options={definition.questions.map((question) => ({
+                      value: question.id,
+                      label: question.label,
+                    }))}
+                    emptyMessage={t("addQuestionForSource")}
                   />
+                  <label className="min-w-0 text-sm">
+                    <span className="mb-2 block text-xs font-bold text-ink/60">
+                      {t("weight")}
+                    </span>
+                    <input
+                      aria-label={`${metric.label} weight`}
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.1"
+                      value={metric.weight}
+                      onChange={(event) =>
+                        editMetric(index, {
+                          ...metric,
+                          weight: Number(event.target.value),
+                        })
+                      }
+                      className="w-full rounded-xl border border-ink/10 bg-paper p-3 text-sm"
+                    />
+                  </label>
                   <button
                     aria-label={`${t("removeMetric")} ${metric.label}`}
                     onClick={() =>
@@ -656,12 +772,10 @@ export function StudioEditorPanels({
             <Braces size={17} />
             <h2 className="font-black">{t("fullDefinitionJson")}</h2>
           </div>
-          <textarea
-            aria-label={t("experimentDefinitionJson")}
+          <JsonEditor
+            label={t("experimentDefinitionJson")}
             value={jsonText}
-            onChange={(event) => updateJson(event.target.value)}
-            spellCheck={false}
-            className="min-h-editor w-full rounded-2xl bg-code p-5 font-mono text-xs leading-5 text-white outline-none"
+            onChange={updateJson}
           />
           {errors.length > 0 && (
             <div
