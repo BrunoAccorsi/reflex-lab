@@ -4,7 +4,11 @@ import {
   experimentDefinitionSchema,
   getExperiment,
 } from "@/lib/experiments";
-import { buildDecisionRequest, createJevProvider } from "@/server/jev";
+import {
+  buildDecisionRequest,
+  createJevProvider,
+  getJevModel,
+} from "@/server/jev";
 import { evaluationRouter } from "@/server/routers/evaluation";
 
 const definition = getExperiment("tool-safety");
@@ -100,6 +104,25 @@ describe("OpenRouter Jev Decisions provider", () => {
     expect(request).not.toHaveProperty("messages");
     expect(JSON.stringify(result.request)).not.toContain("test-key");
     expect(result.rawResponse).toEqual(validPayload);
+  });
+
+  it("uses the same configured model for request previews and provider calls", async () => {
+    vi.stubEnv("OPENROUTER_JEV_MODEL", "typesafe/configured-model");
+    try {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify(validPayload), { status: 200 }),
+        );
+      await (
+        await createJevProvider(fetchMock)
+      )(input);
+      const request = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+      expect(request.model).toBe(getJevModel());
+      expect(request.model).toBe("typesafe/configured-model");
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it("builds repeated record questions", () => {

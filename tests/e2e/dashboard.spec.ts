@@ -1,5 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { experimentDefinitionSchema } from "../../src/lib/experiments";
+import {
+  blankExperiment,
+  experimentDefinitionSchema,
+  getExperiment,
+} from "../../src/lib/experiments";
+import { buildDecisionRequest } from "../../src/lib/jev-request";
 
 const labs = [
   "Support orchestration",
@@ -221,7 +226,9 @@ test("Studio state field identifiers retain focus while typing", async ({
   await expect(identifier).toHaveValue("account_details_updated");
   await expect(identifier).toBeFocused();
 
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const definition = JSON.parse(
     await page.getByLabel("Experiment definition JSON").inputValue(),
   ) as { fields: { id: string }[] };
@@ -266,7 +273,9 @@ test("Studio only offers run-mode choices when record fields exist", async ({
   });
   await expect(runMode.locator("option")).toHaveCount(2);
   await runMode.selectOption(fieldId);
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   let definition = JSON.parse(
     await page.getByLabel("Experiment definition JSON").inputValue(),
   ) as {
@@ -285,7 +294,9 @@ test("Studio only offers run-mode choices when record fields exist", async ({
   );
   await runMode.selectOption("static");
   await expect(runMode).toHaveCount(0);
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   definition = JSON.parse(
     await page.getByLabel("Experiment definition JSON").inputValue(),
   ) as typeof definition;
@@ -323,7 +334,9 @@ test("Studio simplifies metric sources and exposes choice values", async ({
   await expect(source.locator("option")).toHaveCount(2);
   await source.selectOption({ label: "New yes/no check" });
   const sourceId = await source.inputValue();
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const definition = JSON.parse(
     await page.getByLabel("Experiment definition JSON").inputValue(),
   ) as {
@@ -413,7 +426,9 @@ test("Studio adds, edits, removes, and saves choice options within the limits", 
   await expect(remove).toHaveCount(12);
   await expect(criterion).toHaveValue("Account changes");
 
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const definition = experimentDefinitionSchema.parse(
     JSON.parse(
       await page.getByLabel("Experiment definition JSON").inputValue(),
@@ -437,7 +452,9 @@ test("Studio adds, edits, removes, and saves choice options within the limits", 
   await expect(criterion).toHaveValue("Account changes");
   await expect(remove).toHaveCount(12);
 
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const referencedDefinition = experimentDefinitionSchema.parse(
     JSON.parse(
       await page.getByLabel("Experiment definition JSON").inputValue(),
@@ -504,7 +521,9 @@ test("Studio adds, edits, removes, and saves choice options within the limits", 
   await page
     .getByRole("textbox", { name: "New choice billing Criteria", exact: true })
     .fill("");
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const renamedDefinition = experimentDefinitionSchema.parse(
     JSON.parse(
       await page.getByLabel("Experiment definition JSON").inputValue(),
@@ -573,7 +592,9 @@ test("Studio adds, orders, and removes score levels within the limits", async ({
       exact: true,
     }),
   ).toBeDisabled();
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const definition = experimentDefinitionSchema.parse(
     JSON.parse(
       await page.getByLabel("Experiment definition JSON").inputValue(),
@@ -640,7 +661,9 @@ test("Studio can omit optional yes/no criteria and evaluate the saved preset", a
     }),
   ).toHaveValue("Evidence supports yes.");
   await criteriaToggle.uncheck();
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const definition = experimentDefinitionSchema.parse(
     JSON.parse(
       await page.getByLabel("Experiment definition JSON").inputValue(),
@@ -669,7 +692,9 @@ test("Studio JSON editor highlights, formats, copies, and preserves editing", as
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/studio");
   await page.getByRole("button", { name: "New blank", exact: true }).click();
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   const editor = page.getByRole("textbox", {
     name: "Experiment definition JSON",
     exact: true,
@@ -742,7 +767,9 @@ test("Studio JSON editor highlights, formats, copies, and preserves editing", as
   await expect(
     page.getByRole("textbox", { name: "Title", exact: true }),
   ).toHaveValue("Edited JSON");
-  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   await page.getByRole("button", { name: "Português (Brasil)" }).click();
   await expect(
     page.getByRole("button", { name: "Formatar JSON", exact: true }),
@@ -750,6 +777,138 @@ test("Studio JSON editor highlights, formats, copies, and preserves editing", as
   await expect(
     page.getByRole("button", { name: "Copiar JSON", exact: true }),
   ).toBeVisible();
+});
+
+test("Studio JSON shows the native Jev call and saves edited request state", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  let providerCalls = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/alpha/decisions")) providerCalls += 1;
+  });
+  await page.goto("/studio");
+  await page.getByRole("button", { name: "New blank", exact: true }).click();
+  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  const request = page.getByRole("textbox", {
+    name: "Jev API request JSON",
+    exact: true,
+  });
+  await expect(request).toHaveAttribute("readonly", "");
+  const initial = JSON.parse(await request.inputValue()) as { model: string };
+  expect(Object.keys(initial).sort()).toEqual(["model", "questions", "state"]);
+  expect(initial.model).toBeTruthy();
+  expect(initial).toEqual(
+    buildDecisionRequest(
+      { definition: blankExperiment, state: blankExperiment.sampleState },
+      initial.model,
+    ).request,
+  );
+
+  await page.getByRole("button", { name: "Questions", exact: true }).click();
+  await page.getByRole("button", { name: "Choice", exact: true }).click();
+  await page.getByRole("button", { name: "Score", exact: true }).click();
+  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  const withQuestions = JSON.parse(await request.inputValue()) as {
+    questions: Record<string, Record<string, unknown>>;
+  };
+  const questions = Object.values(withQuestions.questions);
+  expect(questions.find((question) => question.type === "choice")).toEqual({
+    type: "choice",
+    instructions: "Choose the best supported option.",
+    criteria: {
+      optionA: "Evidence supports option A.",
+      optionB: "Evidence supports option B.",
+    },
+  });
+  expect(questions.find((question) => question.type === "score")).toEqual({
+    type: "score",
+    instructions: "Select the closest ordered level.",
+    criteria: ["Low: Little evidence.", "High: Strong evidence."],
+  });
+  await page.getByText("Edit request state", { exact: true }).click();
+  const state = page.getByRole("textbox", {
+    name: "Request state JSON",
+    exact: true,
+  });
+  await state.fill('{"context":');
+  await expect(request).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Save", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Questions", exact: true }).click();
+  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  await page.getByText("Edit request state", { exact: true }).click();
+  await expect(state).toHaveValue('{"context":');
+  const sample = {
+    context: "Payment service refactor",
+    pullRequest: {
+      title: "Update payment service",
+      filesChanged: ["payment.ts", "schema.graphql"],
+      additions: 120,
+      hasTests: false,
+    },
+  };
+  const rawState = JSON.stringify(sample);
+  await state.fill(rawState);
+  await state.press("ControlOrMeta+End");
+  await state.pressSequentially("\n ", { delay: 20 });
+  await expect(state).toHaveValue(rawState + "\n ");
+  await expect(state).toBeFocused();
+  const payload = JSON.parse(await request.inputValue()) as {
+    state: Record<string, unknown>;
+  };
+  expect(payload.state).toMatchObject(sample);
+  const requestPanel = request.locator("..").locator("..");
+  await requestPanel
+    .getByRole("button", { name: "Copy JSON", exact: true })
+    .click();
+  expect(
+    JSON.parse(await page.evaluate(() => navigator.clipboard.readText())),
+  ).toEqual(payload);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Custom preset created locally.")).toBeVisible();
+  await page.reload();
+  await page
+    .getByRole("button", { name: "Untitled experiment", exact: true })
+    .click();
+  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  expect(JSON.parse(await request.inputValue())).toEqual(payload);
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
+  const template = JSON.parse(
+    await page.getByLabel("Experiment definition JSON").inputValue(),
+  ) as { sampleState: unknown; fields: unknown[] };
+  expect(template.sampleState).toEqual(sample);
+  expect(template.fields).toHaveLength(1);
+  expect(providerCalls).toBe(0);
+});
+
+test("Studio request preview matches expanded record requests", async ({
+  page,
+}) => {
+  await page.goto("/studio");
+  await page
+    .getByLabel("Built-in template")
+    .selectOption("github-prioritization");
+  await page.getByRole("button", { name: "JSON", exact: true }).click();
+  const payload = JSON.parse(
+    await page
+      .getByRole("textbox", { name: "Jev API request JSON", exact: true })
+      .inputValue(),
+  ) as { model: string; questions: Record<string, unknown> };
+  const definition = getExperiment("github-prioritization");
+  expect(payload).toEqual(
+    buildDecisionRequest(
+      { definition, state: definition.sampleState },
+      payload.model,
+    ).request,
+  );
+  expect(Object.keys(payload.questions)).toHaveLength(15);
+  expect(payload.questions).toHaveProperty("impact__0");
+  expect(payload.questions).toHaveProperty("blocked__2");
 });
 
 test("API JSON views show readable highlighted requests and responses", async ({
@@ -779,7 +938,9 @@ test("Studio keeps visual and JSON editors synchronized and saves a browser pres
   await page
     .getByRole("textbox", { name: "Title", exact: true })
     .fill("Escalation verifier");
-  await page.getByRole("button", { name: "JSON" }).click();
+  await page
+    .getByRole("button", { name: "Template JSON", exact: true })
+    .click();
   await expect(page.getByLabel("Experiment definition JSON")).toContainText(
     '"title": "Escalation verifier"',
   );

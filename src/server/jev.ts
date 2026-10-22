@@ -1,9 +1,7 @@
 import { z } from "zod";
-import {
-  expandQuestions,
-  validateExperimentState,
-  type ExpandedQuestion,
-} from "@/lib/experiments";
+import { type ExpandedQuestion } from "@/lib/experiments";
+import { buildDecisionRequest } from "@/lib/jev-request";
+export { buildDecisionRequest } from "@/lib/jev-request";
 import {
   normalizeTypedAnswer,
   type EvaluationInput,
@@ -58,59 +56,8 @@ const decisionsResponseSchema = z
   })
   .passthrough();
 
-function renderInstructions(question: ExpandedQuestion) {
-  return question.recordLabel
-    ? `${question.instructions} Evaluate record: ${question.recordLabel}.`
-    : question.instructions;
-}
-
-export function buildDecisionRequest(input: EvaluationInput, model: string) {
-  validateExperimentState(input.definition, input.state);
-  const expanded = expandQuestions(input.definition, input.state);
-  const questions = Object.fromEntries(
-    expanded.map((question) => {
-      if (question.kind === "choice")
-        return [
-          question.expandedId,
-          {
-            type: "choice",
-            instructions: renderInstructions(question),
-            criteria: question.criteria,
-          },
-        ];
-      if (question.kind === "score")
-        return [
-          question.expandedId,
-          {
-            type: "score",
-            instructions: renderInstructions(question),
-            criteria: question.levels.map(
-              (level) => `${level.label}: ${level.description}`,
-            ),
-          },
-        ];
-      return [
-        question.expandedId,
-        {
-          type: "noul",
-          instructions: renderInstructions(question),
-          ...(question.criteria ? { criteria: question.criteria } : {}),
-        },
-      ];
-    }),
-  );
-  return {
-    expanded,
-    request: {
-      model,
-      state: {
-        experiment: input.definition.title,
-        description: input.definition.description,
-        ...input.state,
-      },
-      questions,
-    } satisfies Record<string, unknown>,
-  };
+export function getJevModel() {
+  return process.env.OPENROUTER_JEV_MODEL || "typesafe/jev-1.13";
 }
 
 export function normalizeDecisionsResponse(
@@ -179,7 +126,7 @@ export async function createJevProvider(
   fetchImpl: typeof fetch = fetch,
 ): Promise<(input: EvaluationInput) => Promise<JevProviderResult>> {
   const apiKey = process.env.OPENROUTER_API_KEY;
-  const model = process.env.OPENROUTER_JEV_MODEL || "typesafe/jev-1.13";
+  const model = getJevModel();
   if (!apiKey)
     throw new JevProviderError(
       "OPENROUTER_API_KEY is not configured.",

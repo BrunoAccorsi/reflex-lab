@@ -30,7 +30,7 @@ Policy weights and thresholds are intentionally held in client state. Editing th
 ## Workspaces
 
 - `/` contains the six guided capability labs and the Outcome, Answers, Composition, Compare, and API result views.
-- `/studio` provides synchronized visual and JSON definition editing, schema errors, templates, and preset save, duplicate, reset, import, and export controls.
+- `/studio` provides visual authoring and a **JSON** tab showing the native Jev request body (`model`, `state`, and `questions`). The preview uses the same builder as the provider, including repeated-record expansion. Edit its state to change the evidence saved with the preset; copying the preview does not call the provider. **Template JSON** separately edits the full preset definition, including UI fields and policy. Import and export operate on templates.
 
 ## Deployment preparation
 

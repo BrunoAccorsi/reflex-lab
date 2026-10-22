@@ -4,6 +4,7 @@ import { Braces, Check, Copy, WandSparkles } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useLanguage } from "@/components/language-toggle";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function JsonSyntax({ text }: { text: string }) {
   const tokens = useMemo(() => {
@@ -92,10 +93,14 @@ export function JsonEditor({
   value,
   onChange,
   label,
+  readOnly = false,
+  compact = false,
 }: {
   value: string;
-  onChange: (text: string) => void;
+  onChange?: (text: string) => void;
   label: string;
+  readOnly?: boolean;
+  compact?: boolean;
 }) {
   const { t } = useLanguage();
   const highlightRef = useRef<HTMLPreElement>(null);
@@ -127,17 +132,19 @@ export function JsonEditor({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            aria-label={t("formatJson")}
-            disabled={!parsed.valid}
-            title={!parsed.valid ? t("formatJsonHelp") : undefined}
-            onClick={() => onChange(parsed.formatted)}
-            className="border border-white/15 text-white/80"
-          >
-            <WandSparkles size={14} className="mr-2" />
-            <span className="hidden sm:inline">{t("formatJson")}</span>
-            <span className="sm:hidden">{t("formatJsonShort")}</span>
-          </Button>
+          {!readOnly && onChange && (
+            <Button
+              aria-label={t("formatJson")}
+              disabled={!parsed.valid}
+              title={!parsed.valid ? t("formatJsonHelp") : undefined}
+              onClick={() => onChange(parsed.formatted)}
+              className="border border-white/15 text-white/80"
+            >
+              <WandSparkles size={14} className="mr-2" />
+              <span className="hidden sm:inline">{t("formatJson")}</span>
+              <span className="sm:hidden">{t("formatJsonShort")}</span>
+            </Button>
+          )}
           <CopyJson text={value} />
         </div>
       </div>
@@ -161,7 +168,8 @@ export function JsonEditor({
         <textarea
           aria-label={label}
           value={value}
-          onChange={(event) => onChange(event.target.value)}
+          readOnly={readOnly}
+          onChange={(event) => onChange?.(event.target.value)}
           onScroll={(event) => {
             const { scrollTop, scrollLeft } = event.currentTarget;
             if (highlightRef.current) {
@@ -174,14 +182,17 @@ export function JsonEditor({
           spellCheck={false}
           autoCapitalize="off"
           autoCorrect="off"
-          className="json-editor-input relative block min-h-editor w-full resize-y overflow-auto bg-transparent p-5 pl-16 outline-none"
+          className={cn(
+            "json-editor-input relative block w-full resize-y overflow-auto bg-transparent p-5 pl-16 outline-none",
+            compact ? "min-h-48" : "min-h-editor",
+          )}
         />
       </div>
       <div className="flex items-center justify-between border-t border-white/10 px-4 py-2 text-xs text-white/40">
         <span>
           {lineCount} {t("jsonLines")}
         </span>
-        <span>{t("jsonIndent")}</span>
+        <span>{readOnly ? t("requestPreview") : t("jsonIndent")}</span>
       </div>
     </div>
   );

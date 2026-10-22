@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import {
   ArrowLeft,
   ChartNetwork,
@@ -42,7 +42,13 @@ import {
   type EditorTab,
 } from "@/components/studio-editor-panels";
 
-const editorTabs: EditorTab[] = ["Definition", "Questions", "Policy", "JSON"];
+const editorTabs: EditorTab[] = [
+  "Definition",
+  "Questions",
+  "Policy",
+  "JSON",
+  "Template JSON",
+];
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -55,7 +61,7 @@ function validationMessages(error: unknown) {
   return [error instanceof Error ? error.message : "Invalid JSON"];
 }
 
-export function StudioWorkspace() {
+export function StudioWorkspace({ model }: { model: string }) {
   const { language, t } = useLanguage();
   const [definition, setDefinition] = useState<ExperimentDefinitionV1>(() =>
     clone(experiments[0]),
@@ -67,6 +73,12 @@ export function StudioWorkspace() {
     JSON.stringify(experiments[0], null, 2),
   );
   const [errors, setErrors] = useState<string[]>([]);
+  const [requestStateText, setRequestStateText] = useState(() =>
+    JSON.stringify(experiments[0].sampleState, null, 2),
+  );
+  const [requestStateError, setRequestStateError] = useState<string | null>(
+    null,
+  );
   const [tab, setTab] = useState<EditorTab>("Definition");
   const [presets, setPresets] = useState<StoredPreset[]>([]);
   const [activePresetId, setActivePresetId] = useState<string | null>(null);
@@ -80,11 +92,15 @@ export function StudioWorkspace() {
       setDefinition(next);
       setBaseline(next);
       setJsonText(JSON.stringify(next, null, 2));
+      setRequestStateText(JSON.stringify(next.sampleState, null, 2));
+      setRequestStateError(null);
     } else if (definition.id === blankExperiment.id) {
       const next = clone(localizedBlankExperiment(language));
       setDefinition(next);
       setBaseline(next);
       setJsonText(JSON.stringify(next, null, 2));
+      setRequestStateText(JSON.stringify(next.sampleState, null, 2));
+      setRequestStateError(null);
     }
   }, [definition.id, language]);
 
@@ -96,6 +112,8 @@ export function StudioWorkspace() {
   function update(next: ExperimentDefinitionV1) {
     setDefinition(next);
     setJsonText(JSON.stringify(next, null, 2));
+    setRequestStateText(JSON.stringify(next.sampleState, null, 2));
+    setRequestStateError(null);
     setErrors([]);
   }
   function openDefinition(
@@ -126,10 +144,18 @@ export function StudioWorkspace() {
     savePresets(nextPresets);
   }
   function save() {
+    if (requestStateError) {
+      setTab("JSON");
+      return;
+    }
+    if (errors.length > 0) {
+      setTab("Template JSON");
+      return;
+    }
     const parsed = experimentDefinitionSchema.safeParse(definition);
     if (!parsed.success) {
       setErrors(validationMessages(parsed.error));
-      setTab("JSON");
+      setTab("Template JSON");
       return;
     }
     if (activePresetId) {
@@ -173,7 +199,7 @@ export function StudioWorkspace() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${definition.id}.json`;
+    anchor.download = `${definition.id}.template.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -188,7 +214,7 @@ export function StudioWorkspace() {
       setNotice(t("presetImported"));
     } catch (error) {
       setErrors(validationMessages(error));
-      setTab("JSON");
+      setTab("Template JSON");
     }
   }
   function updateJson(text: string) {
@@ -198,9 +224,24 @@ export function StudioWorkspace() {
         JSON.parse(text) as unknown,
       );
       setDefinition(parsed);
+      setRequestStateText(JSON.stringify(parsed.sampleState, null, 2));
+      setRequestStateError(null);
       setErrors([]);
     } catch (error) {
       setErrors(validationMessages(error));
+    }
+  }
+
+  function updateRequestState(text: string) {
+    setRequestStateText(text);
+    try {
+      const state = z.record(z.unknown()).parse(JSON.parse(text) as unknown);
+      const next = { ...definition, sampleState: state };
+      setDefinition(next);
+      setJsonText(JSON.stringify(next, null, 2));
+      setRequestStateError(null);
+    } catch {
+      setRequestStateError(t("requestStateInvalid"));
     }
   }
 
@@ -295,10 +336,18 @@ export function StudioWorkspace() {
                 {notice ?? t("templateLoaded")}
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button onClick={save} className="bg-ink text-white">
+                <Button
+                  onClick={save}
+                  disabled={Boolean(requestStateError) || errors.length > 0}
+                  className="bg-ink text-white"
+                >
                   <Save size={14} className="mr-2" /> {t("save")}
                 </Button>
-                <Button onClick={duplicate} className="border border-ink/10">
+                <Button
+                  onClick={duplicate}
+                  disabled={Boolean(requestStateError) || errors.length > 0}
+                  className="border border-ink/10"
+                >
                   <Copy size={14} className="mr-2" /> {t("duplicate")}
                 </Button>
                 <Button
@@ -311,13 +360,13 @@ export function StudioWorkspace() {
                   onClick={exportDefinition}
                   className="border border-ink/10"
                 >
-                  <Download size={14} className="mr-2" /> {t("export")}
+                  <Download size={14} className="mr-2" /> {t("exportTemplate")}
                 </Button>
                 <Button
                   onClick={() => importRef.current?.click()}
                   className="border border-ink/10"
                 >
-                  <Upload size={14} className="mr-2" /> {t("import")}
+                  <Upload size={14} className="mr-2" /> {t("importTemplate")}
                 </Button>
                 <input
                   ref={importRef}
@@ -388,13 +437,19 @@ export function StudioWorkspace() {
                         ? t("questions")
                         : item === "Policy"
                           ? t("policy")
-                          : t("json")}
+                          : item === "JSON"
+                            ? t("json")
+                            : t("templateJson")}
                   </button>
                 ))}
               </div>
               <div className="p-5 sm:p-7">
                 <StudioEditorPanels
                   tab={tab}
+                  model={model}
+                  requestStateText={requestStateText}
+                  requestStateError={requestStateError}
+                  updateRequestState={updateRequestState}
                   definition={definition}
                   jsonText={jsonText}
                   errors={errors}

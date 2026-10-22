@@ -14,11 +14,17 @@ import { createId } from "@/lib/ids";
 import { Button } from "@/components/ui/button";
 import { StudioQuestionOptions } from "@/components/studio-question-options";
 import { JsonEditor } from "@/components/json-code";
+import { StudioRequestPreview } from "@/components/studio-request-preview";
 
-export type EditorTab = "Definition" | "Questions" | "Policy" | "JSON";
+export type EditorTab =
+  "Definition" | "Questions" | "Policy" | "JSON" | "Template JSON";
 
 type StudioEditorPanelsProps = {
   tab: EditorTab;
+  model: string;
+  requestStateText: string;
+  requestStateError: string | null;
+  updateRequestState: (text: string) => void;
   definition: ExperimentDefinitionV1;
   jsonText: string;
   errors: string[];
@@ -97,6 +103,10 @@ function EditorChoice({
 
 export function StudioEditorPanels({
   tab,
+  model,
+  requestStateText,
+  requestStateError,
+  updateRequestState,
   definition,
   jsonText,
   errors,
@@ -767,6 +777,15 @@ export function StudioEditorPanels({
         </div>
       )}
       {tab === "JSON" && (
+        <StudioRequestPreview
+          definition={definition}
+          model={model}
+          stateText={requestStateText}
+          stateError={requestStateError}
+          updateState={updateRequestState}
+        />
+      )}
+      {tab === "Template JSON" && (
         <div>
           <div className="mb-3 flex items-center gap-2">
             <Braces size={17} />
